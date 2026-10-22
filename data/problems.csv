@@ -1,0 +1,499 @@
+﻿id,stream,subcategory,problem
+1,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Loss of confidence walking without support.
+2,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty maintaining balance on uneven surfaces.
+3,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty starting to walk after standing still.
+4,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty stopping without losing balance.
+5,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty changing direction while walking.
+6,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Instability when turning around in narrow spaces.
+7,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty stepping backward safely.
+8,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty walking while looking to either side.
+9,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty walking while carrying an object.
+10,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Instability when distracted during walking.
+11,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty recovering balance after a stumble.
+12,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Changes in walking ability across the day due to fatigue.
+13,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Difficulty judging whether a surface is safe to walk on.
+14,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Anxiety about walking in unfamiliar places.
+15,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Fear of falling leading to reduced physical activity.
+16,Stream 1 — Mobility and Physical Safety,"1A. Walking, balance, and stability",Increasing reliance on furniture or walls for stability.
+17,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty rising from low chairs.
+18,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty rising from soft sofas.
+19,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty sitting down in a controlled manner.
+20,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty getting out of bed.
+21,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty repositioning oneself in bed.
+22,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty standing after using the toilet.
+23,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty getting into and out of a bathtub.
+24,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty entering or exiting a shower.
+25,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty transferring into a vehicle.
+26,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty getting up after a fall.
+27,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty transitioning from kneeling to standing.
+28,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty standing long enough to dress.
+29,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Dizziness or unsteadiness immediately after standing.
+30,Stream 1 — Mobility and Physical Safety,"1B. Standing, sitting, and body transitions",Difficulty using seating of unfamiliar height or firmness.
+31,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty retrieving objects from the floor.
+32,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty reaching objects above shoulder height.
+33,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty reaching into deep cabinets.
+34,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty bending to put on shoes or socks.
+35,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty accessing low electrical outlets.
+36,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty picking up small objects with reduced dexterity.
+37,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty carrying objects while using a walking aid.
+38,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty moving bulky but relatively light objects.
+39,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty lifting heavy household items.
+40,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty pushing or pulling furniture.
+41,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty maintaining balance while reaching away from the body.
+42,Stream 1 — Mobility and Physical Safety,"1C. Reaching, bending, and manipulation",Difficulty accessing objects that have rolled underneath furniture.
+43,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,"Trips caused by rugs, mats, and floor transitions."
+44,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,"Trips caused by cables, clutter, or temporary obstacles."
+45,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,Slipping on wet bathroom floors.
+46,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,Slipping on kitchen spills.
+47,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,Difficulty navigating stairs without adequate support.
+48,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,Difficulty recognizing stairs in low light.
+49,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,"Instability when moving between carpet, tile, and hardwood."
+50,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,Difficulty navigating narrow doorways with mobility limitations.
+51,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,Poor nighttime visibility when moving through the home.
+52,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,Difficulty moving safely during power outages.
+53,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,Hazardous interactions between pets and people with unstable gait.
+54,Stream 1 — Mobility and Physical Safety,1D. Home-related physical hazards,"Difficulty navigating a home when fatigue, pain, or illness temporarily worsens mobility."
+55,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty walking over broken or uneven sidewalks.
+56,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty negotiating curb transitions.
+57,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,"Difficulty traversing gravel, grass, sand, or cobblestone."
+58,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,"Slipping on wet leaves, snow, or icy surfaces."
+59,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty climbing outdoor steps without railings.
+60,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty crossing streets within pedestrian signal times.
+61,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty walking on sloped pathways.
+62,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty maintaining balance in crowds.
+63,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty navigating crowded entrances or queues.
+64,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty walking safely after dark.
+65,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Increased fall risk in rain or adverse weather.
+66,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty moving through environments with poor visual contrast.
+67,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Lack of places to rest during an outing.
+68,Stream 1 — Mobility and Physical Safety,1E. Outdoor mobility and environmental conditions,Difficulty estimating whether one has enough stamina to complete a trip.
+69,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Poor depth perception when judging steps or curbs.
+70,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Difficulty detecting low-contrast obstacles.
+71,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Difficulty identifying hazards in peripheral vision.
+72,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Disorientation in unfamiliar environments.
+73,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Difficulty navigating while experiencing hearing or vision loss.
+74,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Difficulty performing simultaneous physical and cognitive tasks.
+75,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Delayed reaction to rapidly changing surroundings.
+76,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Difficulty recognizing changes in walking surface elevation.
+77,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Reduced awareness of obstacles when fatigued.
+78,Stream 1 — Mobility and Physical Safety,"1F. Sensory, perceptual, and cognitive contributors to safety",Difficulty responding safely to unexpected movements around the body.
+79,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Falls occurring when no one is nearby.
+80,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Inability to summon assistance after an injury.
+81,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Delayed discovery following a fall.
+82,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Anxiety about falling while home alone.
+83,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Repeated falls without a clear understanding of contributing circumstances.
+84,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Difficulty regaining confidence following a fall.
+85,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Reduced mobility during recovery from a fracture or hospitalization.
+86,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Loss of independence during temporary rehabilitation.
+87,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Difficulty distinguishing ordinary fatigue from emerging physical decline.
+88,Stream 1 — Mobility and Physical Safety,"1G. Falls, injury, and recovery",Reduced activity caused by fear of another injury.
+89,Stream 1 — Mobility and Physical Safety,"1H. Endurance, pain, and fluctuating ability",Difficulty planning activities around unpredictable fatigue.
+90,Stream 1 — Mobility and Physical Safety,"1H. Endurance, pain, and fluctuating ability",Pain that changes the ability to complete routine movements.
+91,Stream 1 — Mobility and Physical Safety,"1H. Endurance, pain, and fluctuating ability",Loss of strength from prolonged inactivity.
+92,Stream 1 — Mobility and Physical Safety,"1H. Endurance, pain, and fluctuating ability",Difficulty maintaining mobility after illness.
+93,Stream 1 — Mobility and Physical Safety,"1H. Endurance, pain, and fluctuating ability",Difficulty pacing activity without becoming exhausted.
+94,Stream 1 — Mobility and Physical Safety,"1H. Endurance, pain, and fluctuating ability",Difficulty standing for household tasks or social activities.
+95,Stream 1 — Mobility and Physical Safety,"1H. Endurance, pain, and fluctuating ability",Reduced tolerance for carrying groceries or personal belongings.
+96,Stream 1 — Mobility and Physical Safety,"1H. Endurance, pain, and fluctuating ability",Rapid changes in mobility that make established routines unsafe.
+97,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty bathing independently.
+98,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty washing hard-to-reach body areas.
+99,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty drying the body after bathing.
+100,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty maintaining balance while showering.
+101,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty brushing teeth with reduced hand dexterity.
+102,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty flossing or cleaning dentures.
+103,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty shaving safely.
+104,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty trimming fingernails and toenails.
+105,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty washing or styling hair.
+106,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty applying skin-care or medical creams.
+107,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty using toileting products with limited reach or flexibility.
+108,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty managing incontinence discreetly.
+109,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Difficulty recognizing when hygiene routines have been missed.
+110,Stream 2 — Caregiving and Daily Living,2A. Personal hygiene and grooming,Embarrassment associated with needing intimate personal assistance.
+111,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty fastening buttons.
+112,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty operating zippers.
+113,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty putting on compression socks.
+114,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty tying shoes.
+115,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty putting on trousers while maintaining balance.
+116,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty raising arms to put on shirts or jackets.
+117,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty reaching behind the body to adjust clothing.
+118,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty handling small garment fasteners.
+119,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty dressing when one arm or hand has limited function.
+120,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty choosing weather-appropriate clothing when environmental awareness or cognition is impaired.
+121,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Fatigue caused by the physical demands of getting dressed.
+122,Stream 2 — Caregiving and Daily Living,2B. Dressing and clothing,Difficulty maintaining personal style and self-expression when clothing becomes physically inaccessible.
+123,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty opening jars and bottles.
+124,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty opening sealed food packaging.
+125,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty safely cutting ingredients.
+126,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty holding objects steady while preparing food.
+127,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty lifting or draining heavy pots.
+128,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty reaching cooking ingredients.
+129,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty safely transporting hot food or liquids.
+130,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty noticing food burning or boiling over.
+131,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty monitoring several cooking steps simultaneously.
+132,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty following recipes with multiple stages.
+133,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty preparing meals while standing for prolonged periods.
+134,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty eating with tremors or reduced hand coordination.
+135,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty maintaining adequate nutrition when cooking becomes physically demanding.
+136,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty preparing food for one person without excessive waste.
+137,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Difficulty safely assessing whether food has spoiled.
+138,Stream 2 — Caregiving and Daily Living,2C. Food preparation and nutrition,Loss of enjoyment or cultural identity when favorite meals become impossible to prepare.
+139,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty opening medication bottles.
+140,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty removing tablets from blister packaging.
+141,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty reading small prescription labels.
+142,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty distinguishing medications with similar appearance.
+143,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty remembering whether medication has already been taken.
+144,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty following complex medication schedules.
+145,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty understanding changes to prescriptions.
+146,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty dividing or handling small tablets.
+147,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty administering eye drops.
+148,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty applying topical treatments to inaccessible body areas.
+149,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty managing multiple medications when dexterity is limited.
+150,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty handling medical equipment during self-care.
+151,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty coordinating prescription refills.
+152,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty identifying or reporting medication side effects.
+153,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Difficulty managing medications during travel or disrupted routines.
+154,Stream 2 — Caregiving and Daily Living,2D. Medication and treatment management,Dependence on another person for physically accessing medication despite understanding one's treatment.
+155,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty carrying laundry.
+156,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty loading or unloading a washing machine.
+157,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty hanging or folding clothing.
+158,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty changing bed linens.
+159,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty vacuuming or mopping.
+160,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty cleaning bathrooms.
+161,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty reaching high shelves to clean.
+162,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty taking out household trash.
+163,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty moving recycling containers.
+164,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty changing light bulbs.
+165,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty replacing batteries in household devices.
+166,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty detecting water leaks or appliance malfunctions.
+167,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty moving objects to clean beneath them.
+168,Stream 2 — Caregiving and Daily Living,2E. Household maintenance and cleaning,Difficulty maintaining a household when tasks accumulate faster than they can be completed.
+169,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty inserting keys into locks.
+170,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty turning stiff doorknobs or handles.
+171,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty plugging and unplugging electrical cords.
+172,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty opening mail and envelopes.
+173,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty handling coins and small payments.
+174,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty manipulating jewelry clasps.
+175,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty using conventional scissors.
+176,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty operating stiff faucets.
+177,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty retrieving objects from bags or pockets.
+178,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty using devices with small physical controls.
+179,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty changing batteries in remote controls or hearing aids.
+180,Stream 2 — Caregiving and Daily Living,2F. Small-object interaction and everyday dexterity,Difficulty completing tasks requiring two-handed coordination.
+181,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Forgetting where frequently used objects have been placed.
+182,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Difficulty remembering scheduled appointments.
+183,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Difficulty completing multistep household tasks.
+184,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Losing track of unfinished activities.
+185,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Difficulty switching between competing daily responsibilities.
+186,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Confusion when familiar routines change unexpectedly.
+187,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Difficulty recognizing unusual changes in daily behavior.
+188,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Difficulty managing new instructions after medical visits.
+189,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Difficulty making decisions when presented with too many options.
+190,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Distress caused by misplaced items or disrupted routines.
+191,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Difficulty coordinating daily activities during periods of cognitive fluctuation.
+192,Stream 2 — Caregiving and Daily Living,"2G. Memory, attention, and routine management",Difficulty maintaining independence when short-term memory changes.
+193,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Physical strain from helping another person stand.
+194,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Risk of injury during transfers or repositioning.
+195,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Sleep disruption caused by nighttime caregiving.
+196,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Uncertainty about when a person requires assistance.
+197,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Difficulty balancing caregiving with employment.
+198,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Difficulty balancing caregiving with child or family responsibilities.
+199,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Emotional exhaustion from prolonged caregiving.
+200,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Difficulty managing unpredictable care needs.
+201,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Lack of respite during intensive caregiving.
+202,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Difficulty coordinating responsibilities among multiple caregivers.
+203,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Difficulty communicating changes in a person's daily condition.
+204,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Anxiety when leaving a care recipient alone.
+205,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Difficulty preserving the care recipient's autonomy while ensuring safety.
+206,Stream 2 — Caregiving and Daily Living,2H. Caregiver workload and physical strain,Financial strain associated with providing unpaid care.
+207,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty keeping track of multiple healthcare providers.
+208,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Conflicting or unclear care instructions.
+209,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty communicating symptoms accurately during appointments.
+210,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty preparing questions before medical visits.
+211,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty understanding test results or medical terminology.
+212,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty arranging transportation to appointments.
+213,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty scheduling follow-up care after hospitalization.
+214,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Discontinuity of care between hospitals and home.
+215,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty locating appropriate home-care services.
+216,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty managing health information across different systems.
+217,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty identifying gradual deterioration before a crisis.
+218,Stream 2 — Caregiving and Daily Living,2I. Care coordination and healthcare navigation,Difficulty advocating for personal preferences during complex care decisions.
+219,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty recognizing fraudulent communications.
+220,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty managing bills when vision or dexterity declines.
+221,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty navigating complex banking authentication.
+222,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty understanding insurance paperwork.
+223,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty managing subscriptions and recurring payments.
+224,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty evaluating unfamiliar service providers.
+225,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty accessing benefits or assistance programs.
+226,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty maintaining control over financial decisions while receiving support.
+227,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Anxiety about asking relatives for financial or administrative assistance.
+228,Stream 2 — Caregiving and Daily Living,2J. Financial and administrative daily living,Difficulty handling official documents with complex instructions.
+229,Stream 3 — Social Connection,3A. Loneliness and social isolation,Living alone with limited regular human contact.
+230,Stream 3 — Social Connection,3A. Loneliness and social isolation,Losing a spouse or long-term partner.
+231,Stream 3 — Social Connection,3A. Loneliness and social isolation,Shrinking friendship networks as peers move away or die.
+232,Stream 3 — Social Connection,3A. Loneliness and social isolation,Difficulty forming new friendships later in life.
+233,Stream 3 — Social Connection,3A. Loneliness and social isolation,Reduced social contact following retirement.
+234,Stream 3 — Social Connection,3A. Loneliness and social isolation,Isolation following relocation to a new community.
+235,Stream 3 — Social Connection,3A. Loneliness and social isolation,Geographic separation from children and grandchildren.
+236,Stream 3 — Social Connection,3A. Loneliness and social isolation,Feeling lonely despite having frequent contact with others.
+237,Stream 3 — Social Connection,3A. Loneliness and social isolation,Lack of meaningful social interaction beyond routine service encounters.
+238,Stream 3 — Social Connection,3A. Loneliness and social isolation,Difficulty rebuilding a social network after major life changes.
+239,Stream 3 — Social Connection,3A. Loneliness and social isolation,Social withdrawal following illness or disability.
+240,Stream 3 — Social Connection,3A. Loneliness and social isolation,Anxiety about spending extended periods alone.
+241,Stream 3 — Social Connection,3B. Communication barriers,Difficulty hearing conversations in noisy environments.
+242,Stream 3 — Social Connection,3B. Communication barriers,Difficulty following multiple simultaneous speakers.
+243,Stream 3 — Social Connection,3B. Communication barriers,Difficulty understanding people who speak quickly.
+244,Stream 3 — Social Connection,3B. Communication barriers,Difficulty participating in group conversations.
+245,Stream 3 — Social Connection,3B. Communication barriers,Difficulty recognizing speech when speakers face away.
+246,Stream 3 — Social Connection,3B. Communication barriers,Difficulty following conversations with unfamiliar accents.
+247,Stream 3 — Social Connection,3B. Communication barriers,Difficulty finding the right words during conversation.
+248,Stream 3 — Social Connection,3B. Communication barriers,Difficulty speaking clearly due to changes in voice or motor control.
+249,Stream 3 — Social Connection,3B. Communication barriers,Difficulty being understood during telephone calls.
+250,Stream 3 — Social Connection,3B. Communication barriers,Difficulty following conversation when tired or cognitively overloaded.
+251,Stream 3 — Social Connection,3B. Communication barriers,Embarrassment from repeatedly asking others to repeat themselves.
+252,Stream 3 — Social Connection,3B. Communication barriers,Exclusion when others communicate on behalf of an older person.
+253,Stream 3 — Social Connection,3B. Communication barriers,Difficulty communicating with people who use a different language.
+254,Stream 3 — Social Connection,3B. Communication barriers,Difficulty reading facial expressions or social cues when vision changes.
+255,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Reluctance to contact others for fear of being a burden.
+256,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Uncertainty about when family members are available.
+257,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Difficulty initiating conversations without a specific reason.
+258,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Fear of interrupting busy relatives or friends.
+259,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Difficulty maintaining regular contact across time zones.
+260,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,"Forgetting birthdays, anniversaries, and social commitments."
+261,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Difficulty sustaining friendships when leaving home becomes harder.
+262,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Difficulty finding people who share interests or experiences.
+263,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Lack of spontaneous encounters with friends and neighbors.
+264,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Unequal effort in maintaining relationships.
+265,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Difficulty reconnecting after extended social withdrawal.
+266,Stream 3 — Social Connection,3C. Initiating and maintaining relationships,Difficulty expressing a need for companionship directly.
+267,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Difficulty learning unfamiliar communication applications.
+268,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Confusion caused by changing application interfaces.
+269,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Difficulty remembering passwords and authentication steps.
+270,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Difficulty using touchscreens with reduced dexterity.
+271,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Difficulty seeing small text or interface controls.
+272,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Difficulty managing notifications from multiple platforms.
+273,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Difficulty troubleshooting failed video calls.
+274,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Difficulty recognizing fraudulent or impersonated digital contacts.
+275,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Limited confidence using online community services.
+276,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Inability to participate in digital-only social events.
+277,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,"Difficulty sharing photographs, memories, or media with relatives."
+278,Stream 3 — Social Connection,3D. Digital exclusion and remote interaction,Feeling disconnected when younger family members primarily communicate digitally.
+279,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Loss of professional identity after retirement.
+280,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Feeling less useful or needed by family.
+281,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Loss of opportunities to mentor younger generations.
+282,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Difficulty continuing hobbies that provide a sense of identity.
+283,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Losing the ability to host meals or gatherings.
+284,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Difficulty contributing to household or family responsibilities.
+285,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Loss of volunteer opportunities following mobility changes.
+286,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Feeling excluded from decisions affecting one's life.
+287,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Reduced opportunities to share knowledge and experience.
+288,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Feeling defined by care needs rather than personal achievements.
+289,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Difficulty discovering meaningful new roles in later life.
+290,Stream 3 — Social Connection,"3E. Social roles, identity, and purpose",Loss of confidence in one's ability to contribute to a group.
+291,Stream 3 — Social Connection,3F. Intergenerational relationships,Limited shared activities between grandparents and grandchildren.
+292,Stream 3 — Social Connection,3F. Intergenerational relationships,Difficulty participating in physically demanding family events.
+293,Stream 3 — Social Connection,3F. Intergenerational relationships,Differences in communication habits between generations.
+294,Stream 3 — Social Connection,3F. Intergenerational relationships,Difficulty maintaining close relationships with geographically distant grandchildren.
+295,Stream 3 — Social Connection,3F. Intergenerational relationships,Feeling excluded from fast-moving family conversations.
+296,Stream 3 — Social Connection,3F. Intergenerational relationships,"Difficulty passing on family stories, knowledge, or traditions."
+297,Stream 3 — Social Connection,3F. Intergenerational relationships,Limited opportunities for reciprocal learning between generations.
+298,Stream 3 — Social Connection,3F. Intergenerational relationships,Difficulty participating in family celebrations when travel is impractical.
+299,Stream 3 — Social Connection,3F. Intergenerational relationships,Family members speaking primarily to caregivers rather than directly to the older person.
+300,Stream 3 — Social Connection,3F. Intergenerational relationships,Tension between family concern for safety and an older person's desire for autonomy.
+301,Stream 3 — Social Connection,3G. Community participation and belonging,Difficulty attending neighborhood gatherings.
+302,Stream 3 — Social Connection,3G. Community participation and belonging,Lack of welcoming opportunities for older newcomers.
+303,Stream 3 — Social Connection,3G. Community participation and belonging,Difficulty finding accessible clubs or interest groups.
+304,Stream 3 — Social Connection,3G. Community participation and belonging,Social activities scheduled at inconvenient times.
+305,Stream 3 — Social Connection,3G. Community participation and belonging,Difficulty attending events because of transportation barriers.
+306,Stream 3 — Social Connection,3G. Community participation and belonging,Exclusion from community activities requiring prolonged standing or walking.
+307,Stream 3 — Social Connection,3G. Community participation and belonging,Difficulty participating in volunteer organizations.
+308,Stream 3 — Social Connection,3G. Community participation and belonging,Lack of welcoming spaces for people with sensory impairments.
+309,Stream 3 — Social Connection,3G. Community participation and belonging,Feeling unwelcome in places designed primarily for younger people.
+310,Stream 3 — Social Connection,3G. Community participation and belonging,Difficulty maintaining membership in groups after health changes.
+311,Stream 3 — Social Connection,3G. Community participation and belonging,Lack of affordable opportunities for regular social participation.
+312,Stream 3 — Social Connection,3G. Community participation and belonging,Reduced connection to one's neighborhood after becoming homebound.
+313,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Difficulty discussing loneliness with family.
+314,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Reluctance to disclose declining abilities.
+315,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Fear of being perceived as dependent.
+316,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Shame associated with needing assistance.
+317,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Difficulty expressing grief and loss.
+318,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Feeling unheard during family care discussions.
+319,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Difficulty maintaining emotional boundaries with caregivers.
+320,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Anxiety about future independence or institutional care.
+321,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Difficulty asking for help while preserving dignity.
+322,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Feeling socially invisible or overlooked.
+323,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Fear of becoming a burden on loved ones.
+324,Stream 3 — Social Connection,3H. Emotional vulnerability and difficult conversations,Reduced confidence following rejection or social exclusion.
+325,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Difficulty recognizing familiar people.
+326,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Difficulty recalling names during introductions.
+327,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Difficulty following complex stories or conversations.
+328,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Anxiety about making mistakes in public.
+329,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Withdrawal from social activities because of memory concerns.
+330,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Difficulty maintaining friendships after a dementia diagnosis.
+331,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Friends reducing contact because they are uncomfortable with cognitive changes.
+332,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Difficulty understanding social situations that change unexpectedly.
+333,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Reduced opportunities to participate in meaningful conversations when cognition declines.
+334,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Family communication becoming dominated by care tasks rather than shared interests.
+335,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Changes in personality or emotional regulation straining relationships.
+336,Stream 3 — Social Connection,3I. Cognitive change and social relationships,Difficulty preserving personal agency as others assume greater decision-making responsibility.
+337,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Lack of opportunities for romantic companionship in later life.
+338,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Stigma surrounding dating and intimacy among older adults.
+339,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Difficulty maintaining intimacy when health conditions change.
+340,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Loss of physical affection following bereavement.
+341,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Lack of privacy in residential care settings.
+342,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Tension between personal relationships and family expectations.
+343,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Difficulty finding companionship among people with similar experiences.
+344,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Reluctance to pursue new relationships after losing a partner.
+345,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Feeling that emotional or romantic needs are dismissed because of age.
+346,Stream 3 — Social Connection,"3J. Intimacy, companionship, and personal relationships",Difficulty balancing independence and closeness in caregiving relationships.
+347,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Homes with stairs that become difficult to navigate.
+348,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Bathrooms too small for mobility equipment or caregiving assistance.
+349,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Doorways too narrow for mobility aids.
+350,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Kitchen storage located outside comfortable reach.
+351,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Countertops that cannot accommodate seated use.
+352,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Inadequate lighting in circulation areas.
+353,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Lack of secure handholds in critical locations.
+354,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Uneven floor transitions between rooms.
+355,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Thresholds that obstruct mobility aids.
+356,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Door hardware requiring excessive grip strength.
+357,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Windows that are difficult to open or close.
+358,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Heavy sliding doors that are difficult to operate.
+359,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Inaccessible storage in closets and utility spaces.
+360,Stream 4 — Aging Infrastructure,4A. Housing design and accessibility,Homes that cannot accommodate changing physical abilities without major renovation.
+361,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,High costs of home accessibility renovations.
+362,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Difficulty finding qualified accessibility contractors.
+363,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Limited access to accessible rental housing.
+364,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Landlord restrictions on accessibility modifications.
+365,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Difficulty assessing future accessibility before purchasing a home.
+366,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Financial pressure to relocate when a home becomes unsuitable.
+367,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Lack of affordable housing near family or support networks.
+368,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Difficulty maintaining older homes on fixed incomes.
+369,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Delayed adaptations until after injury or hospitalization.
+370,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Difficulty understanding which modifications are appropriate for changing needs.
+371,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Limited availability of temporary accessible housing following illness.
+372,Stream 4 — Aging Infrastructure,4B. Housing affordability and adaptation,Emotional distress associated with leaving a long-term home.
+373,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Broken or uneven sidewalks.
+374,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Missing curb ramps.
+375,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Curb ramps that are too steep or poorly aligned.
+376,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Insufficient pedestrian crossing time.
+377,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Poor visibility at intersections.
+378,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Inadequate public seating.
+379,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Public seating that is too low or lacks armrests.
+380,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Long distances between shaded or sheltered rest areas.
+381,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Poor pedestrian lighting at night.
+382,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces","Sidewalks obstructed by parked vehicles, bins, or construction."
+383,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Inadequate wayfinding in public spaces.
+384,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Large public spaces lacking accessible routes.
+385,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Insufficient drinking water or public rest facilities.
+386,Stream 4 — Aging Infrastructure,"4C. Neighborhoods, sidewalks, and public spaces",Outdoor environments that become inaccessible during extreme heat or rain.
+387,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty reaching public transit stops.
+388,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty boarding buses or trains.
+389,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty finding a stable position before a vehicle moves.
+390,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty exiting vehicles safely.
+391,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Insufficient time to board or disembark.
+392,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty navigating complex transit stations.
+393,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty understanding route changes or service disruptions.
+394,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Lack of accessible transportation during evenings or weekends.
+395,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,High cost of accessible transportation.
+396,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty transporting groceries or belongings on public transit.
+397,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Long walking distances between parking and destinations.
+398,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty entering or exiting ride-hailing vehicles.
+399,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Limited transportation options in rural communities.
+400,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Loss of independence following the decision to stop driving.
+401,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Difficulty accessing medical appointments without driving.
+402,Stream 4 — Aging Infrastructure,4D. Transportation and last-mile access,Reduced participation in social life because of transportation uncertainty.
+403,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Heavy doors at building entrances.
+404,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Inaccessible reception and service counters.
+405,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Seating arrangements that are difficult to enter or exit.
+406,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Restrooms located too far from activity areas.
+407,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Inadequate accessible toilets in public buildings.
+408,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Poorly placed handrails.
+409,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Difficult-to-read building directories.
+410,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Confusing elevator controls.
+411,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Long queues without seating.
+412,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Difficulty opening public restroom doors while using mobility aids.
+413,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Poor lighting and acoustic conditions in shared spaces.
+414,Stream 4 — Aging Infrastructure,4E. Public buildings and shared facilities,Accessibility features that exist but are poorly maintained.
+415,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Grocery aisles too narrow for comfortable mobility.
+416,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Products placed on excessively high or low shelves.
+417,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Difficulty carrying purchases while using mobility aids.
+418,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Inaccessible shopping carts or baskets.
+419,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Difficult-to-read price labels.
+420,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Self-checkout interfaces with small controls or confusing sequences.
+421,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Payment terminals mounted outside comfortable reach.
+422,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments","Lack of seating in pharmacies, banks, and retail environments."
+423,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Excessive walking distances inside large stores.
+424,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Difficulty accessing refrigerated or enclosed display cases.
+425,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Inability to examine product information before purchasing.
+426,Stream 4 — Aging Infrastructure,"4F. Retail, shopping, and service environments",Difficulty managing purchased items between checkout and transportation.
+427,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Difficult-to-navigate hospital and clinic layouts.
+428,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,"Long distances between reception, waiting areas, and examination rooms."
+429,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Examination tables that are difficult to access.
+430,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Waiting rooms that are uncomfortable for people with mobility limitations.
+431,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Poor acoustic conditions that interfere with communication.
+432,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Inadequate privacy during care discussions.
+433,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Inaccessible check-in kiosks.
+434,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Confusing navigation between departments.
+435,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Long appointment waits without appropriate physical accommodations.
+436,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Discharge processes that assume adequate home support.
+437,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Inconsistent accessibility between healthcare providers.
+438,Stream 4 — Aging Infrastructure,4G. Healthcare facilities and institutional environments,Difficulty coordinating care across organizations using incompatible systems.
+439,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Ticket machines with controls outside comfortable reach.
+440,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Touchscreens that require precise finger movements.
+441,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Public systems that rely exclusively on smartphones.
+442,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Essential services that require complex passwords or authentication.
+443,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Interfaces with small text or low visual contrast.
+444,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Services with strict time limits for completing transactions.
+445,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Audio-only or visual-only information that excludes some users.
+446,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Confusing error messages and unclear recovery steps.
+447,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Difficulty accessing human assistance when automated systems fail.
+448,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Frequent interface changes in essential services.
+449,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Inability to complete government or financial processes without digital literacy.
+450,Stream 4 — Aging Infrastructure,4H. Public interfaces and digital services,Difficulty understanding which online services are legitimate and trustworthy.
+451,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Greater difficulty evacuating during fires or floods.
+452,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Emergency evacuation routes that depend on stairs.
+453,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Inability to transport mobility equipment during evacuation.
+454,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Difficulty receiving emergency alerts in an accessible format.
+455,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,High vulnerability to prolonged heat exposure.
+456,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Limited access to cool indoor spaces during heatwaves.
+457,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Difficulty maintaining essential care during power outages.
+458,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Dependence on electrically powered medical equipment.
+459,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,"Difficulty obtaining food, water, or medication during disasters."
+460,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Limited emergency planning for people living alone.
+461,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Loss of social contact during shelter-in-place emergencies.
+462,Stream 4 — Aging Infrastructure,4I. Climate resilience and emergency preparedness,Emergency shelters that cannot accommodate varied mobility and care needs.
+463,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Long travel distances to healthcare.
+464,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Scarcity of accessible public transportation.
+465,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Difficulty obtaining home-care services.
+466,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Limited availability of specialized medical providers.
+467,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Inadequate broadband access for essential services.
+468,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Difficulty obtaining assistive equipment or repairs.
+469,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Isolation caused by geographic distance.
+470,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Limited accessible recreational and community facilities.
+471,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,High travel costs for routine appointments.
+472,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Difficulty obtaining nutritious groceries without driving.
+473,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Lack of local rehabilitation and recovery services.
+474,Stream 4 — Aging Infrastructure,4J. Rural and underserved communities,Unequal access to aging-related services between urban and rural areas.
+475,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Difficulty determining eligibility for public assistance.
+476,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Complicated applications for aging-related benefits.
+477,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Fragmented responsibility across service providers.
+478,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Lack of transparent pricing for care and support services.
+479,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Long waits for accessible housing or home-care assistance.
+480,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Inconsistent accessibility standards across jurisdictions.
+481,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Limited public understanding of age-related accessibility needs.
+482,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Age-based discrimination in employment and services.
+483,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Language barriers in health and community services.
+484,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Difficulty accessing services without a reliable address or internet connection.
+485,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Limited support for people without nearby family caregivers.
+486,Stream 4 — Aging Infrastructure,"4K. Institutional systems, service access, and equity",Services designed around institutional convenience rather than individual routines.
+487,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Parks without accessible circulation routes.
+488,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Public gardens with inaccessible work areas.
+489,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Community workshops with fixed-height equipment.
+490,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Libraries and learning spaces that do not accommodate sensory or mobility differences.
+491,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Recreational programs that unintentionally exclude slower participants.
+492,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Public events without sufficient accessible seating.
+493,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Sports and exercise facilities that are difficult to enter or navigate.
+494,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Community centers located far from public transportation.
+495,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Lack of accessible opportunities for volunteering.
+496,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Difficulty participating in civic meetings or public consultations.
+497,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Cultural venues with inadequate navigation or rest facilities.
+498,Stream 4 — Aging Infrastructure,4L. Community and recreational infrastructure,Inaccessible shared spaces that reduce participation in meaningful activities.
