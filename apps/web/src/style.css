@@ -36,3 +36,26 @@
 .target-controls textarea{width:100%;min-height:72px}
 .target-toolbar .button-row{flex-wrap:wrap}
 @media(max-width:900px){.target-directory,.target-workspace{grid-template-columns:1fr}.target-home{padding:12px}.target-header,.target-toolbar{flex-wrap:wrap}}
+
+/* v0.6.1 sidebar-first target workspace */
+.target-app{height:calc(100vh - 46px);min-height:650px}
+.target-sidebar{min-height:calc(100vh - 46px);height:calc(100vh - 46px);overflow:auto}
+.target-sidebar-empty{color:#8aa1ac;padding:10px 13px}
+.target-main{overflow:auto;max-height:calc(100vh - 46px)}
+.target-canvas-layout{display:grid;grid-template-columns:minmax(460px,1.8fr) minmax(275px,.85fr);gap:16px;height:calc(100vh - 192px);min-height:540px}
+.target-graph-wrap{position:relative;min-height:490px}
+.target-graph-wrap .graph-panel{height:100%}
+.target-context{height:100%;overflow:auto;margin:0}
+.target-context .stream{justify-content:space-between}
+.target-context textarea{background:#101d25;color:#e4eeee;border:1px solid #38515b;border-radius:8px;padding:11px;width:100%}
+.target-empty-hint{position:absolute;bottom:58px;left:28px;color:#98adb6;pointer-events:none;font-size:12px}
+.target-buttons{flex-wrap:wrap;margin:12px 0}
+.target-directory-panel{max-width:970px}
+.wizard-backdrop{position:fixed;inset:0;background:rgba(4,11,17,.78);backdrop-filter:blur(5px);z-index:30;display:flex;align-items:center;justify-content:center;padding:20px}
+.wizard-card{width:min(670px,100%);max-height:92vh;overflow:auto;border:1px solid #47616a;background:#1b2b35;border-radius:16px;padding:27px;box-shadow:0 24px 90px #0009}
+.wizard-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.wizard-head h2{margin:0;font:600 24px 'Space Grotesk',sans-serif}
+.wizard-card .field{margin:12px 0}.wizard-streams{max-height:270px;overflow:auto;margin-top:12px}.wizard-stream{display:flex;align-items:flex-start;gap:13px;padding:8px;border-bottom:1px solid #324650}
+.wizard-stream>input{margin-top:15px}.wizard-stream>div{flex:1}.wizard-stream input:not([type=checkbox]),.wizard-stream textarea,.wizard-actions~input,.wizard-card .button-row input{width:100%;background:#101d25;color:#e4eeee;border:1px solid #38515b;border-radius:7px;padding:9px}
+.wizard-stream textarea{margin-top:5px}.wizard-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+@media(max-width:1100px){.target-canvas-layout{grid-template-columns:1fr;height:auto}.target-graph-wrap{height:560px}.target-context{max-height:600px}}
+@media(max-width:650px){.target-app{height:auto}.target-sidebar{height:auto;min-height:auto}.target-main{max-height:none}.wizard-card{padding:17px}}

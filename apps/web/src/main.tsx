@@ -18,7 +18,7 @@ async function api<T=any>(url:string,init?:RequestInit):Promise<T>{
  if(!res.ok){let error:any;try{error=await res.json()}catch{error={detail:res.statusText}};throw new Error(typeof error.detail==='string'?error.detail:(error.detail?.message||JSON.stringify(error.detail||res.statusText)))}
  return res.json();
 }
-const post=(url:string,body?:unknown)=>api(url,{method:'POST',body:JSON.stringify(body??{})});
+const post=<T=any,>(url:string,body?:unknown):Promise<T>=>api<T>(url,{method:'POST',body:JSON.stringify(body??{})});
 const graphLabel=(value:string,type:string)=>{
  const text=value.trim().replace(/\s+/g,' ');
  if(type!=='problem'&&type!=='finding')return text;
@@ -110,7 +110,7 @@ function Graph({onProblem,targetId}:{onProblem:(id:number)=>void,targetId?:strin
     {selector:'.graph-muted',style:{'opacity':0.20}}
    ],layout:{name:'preset'},wheelSensitivity:0.18});
    cy.current=core;
-   api<Elements>(targetId?'/targets/'+encodeURIComponent(targetId)+'/graph':'/graph/root').then(data=>{core.add([...data.nodes,...data.edges]);layoutGraph(core)}).catch(e=>setHint(e.message));
+   (targetId==='__empty__'?Promise.resolve({nodes:[{data:{id:'root',label:'Create or select a target',type:'root'}}],edges:[]}):api<Elements>(targetId?'/targets/'+encodeURIComponent(targetId)+'/graph':'/graph/root')).then(data=>{core.add([...data.nodes,...data.edges]);layoutGraph(core)}).catch(e=>setHint(e.message));
    core.on('mouseover','node',evt=>{
      const full=String(evt.target.data('label')||'');
      if(evt.target.data('type')==='problem')setHint(full+' · Click to open full record');
@@ -210,43 +210,100 @@ function WorkspaceCreator({onCreated}:{onCreated:()=>void}){
  </div></section>;
 }
 
-// Target-first home: no implicit load of legacy graph or private objects outside the selected target.
+// v0.6.1: sidebar-first experience with an optional target wizard overlay.
 type Target={id:string,name:string,description:string,shared:boolean,ownerId?:string,readOnly?:boolean};
+type SuggestedStream={name:string,description:string,selected:boolean};
 function TargetHome(){
  const [directory,setDirectory]=useState<{mine:Target[],shared:Target[],reference:Target}|null>(null);
  const [current,setCurrent]=useState<Target|null>(null);
- const [form,setForm]=useState({name:'',description:'',shared:false});
- const [streamName,setStreamName]=useState('');const [streamDesc,setStreamDesc]=useState('');
- const [streams,setStreams]=useState<any[]>([]);const [selectedStream,setSelectedStream]=useState('');
- const [categoryName,setCategoryName]=useState('');const [categories,setCategories]=useState<any[]>([]);const [category,setCategory]=useState('');const [statement,setStatement]=useState('');
- const [selectedProblem,setSelectedProblem]=useState<any>(null);const [error,setError]=useState('');const [notice,setNotice]=useState('');const [version,setVersion]=useState(0);
- const refresh=()=>api<any>('/targets').then(setDirectory).catch((e:any)=>setError(e.message));
- useEffect(()=>{refresh()},[]);
- const run=async(f:()=>Promise<any>)=>{setError('');try{await f()}catch(e:any){setError(e.message)}};
- const open=async(t:Target)=>{setCurrent(t);setSelectedStream('');setSelectedProblem(null);setCategory('');setVersion(v=>v+1);if(t.id!=='reference-longevity'){try{setStreams(await api('/targets/'+t.id+'/streams'))}catch(e:any){setError(e.message)}}else setStreams([])};
- const refreshStreams=async()=>{if(current&&current.id!=='reference-longevity')setStreams(await api('/targets/'+current.id+'/streams'));setVersion(v=>v+1)};
- const openProblem=async(id:number)=>{if(!current)return;await run(async()=>setSelectedProblem(await api('/targets/'+current.id+'/problems/'+id)))};
- return <div className="target-home"><div className="target-header"><div><h1>Problem Explorer</h1><p className="muted">Independent research targets and evidence-led problem discovery</p></div>{current&&<button className="secondary" onClick={()=>{setCurrent(null);setSelectedProblem(null);refresh()}}><ArrowLeft size={16}/> All targets</button>}</div>
- {error&&<div className="alert bad">{error}<button onClick={()=>setError('')}>Dismiss</button></div>}
- {notice&&<div className="alert good">{notice}<button onClick={()=>setNotice('')}>Dismiss</button></div>}
- {!current?<div className="target-directory"><section className="panel"><h2><FolderPlus size={20}/> Create target</h2><p className="muted">Start with a central research question or design challenge. Add streams, categories and problems under it.</p><label className="field">Target name<input value={form.name} onChange={e=>setForm(v=>({...v,name:e.target.value}))} placeholder="e.g. Human-centered robotics for longevity"/></label><label className="field">Research scope<textarea rows={3} value={form.description} onChange={e=>setForm(v=>({...v,description:e.target.value}))}/></label><label className="field"><input type="checkbox" checked={form.shared} onChange={e=>setForm(v=>({...v,shared:e.target.checked}))}/> Share this target in the public directory (view only)</label><button className="primary" disabled={form.name.trim().length<3} onClick={()=>run(async()=>{const t=await post('/targets',form);setForm({name:'',description:'',shared:false});await refresh();await open(t)})}>Create target →</button></section>
- <section className="panel"><h2>My targets</h2>{directory?.mine.length?directory.mine.map(t=><div className="target-entry" key={t.id}><button className="secondary" onClick={()=>open(t)}><Network size={17}/> {t.name} <ChevronRight size={16}/></button><small>{t.description}</small></div>):<p className="muted">No targets yet. Create your first target to begin.</p>}
- <h2>Shared target directory</h2>{directory?.shared.map(t=><div className="target-entry" key={t.id}><button className="secondary" onClick={()=>open(t)}><Share2 size={16}/> {t.name}</button><small>{t.description}</small></div>)}{directory?.reference&&<div className="target-entry"><button className="secondary" onClick={()=>open(directory.reference)}><BookOpen size={16}/> {directory.reference.name}</button><small>Original research streams and problems · read-only</small></div>}</section></div>:
- <><section className="panel target-toolbar"><div><h2>{current.name} {current.shared&&<Share2 size={16}/>}</h2><p className="muted">{current.description||'Research target'} · {current.ownerId?'Personal target':'Shared reference'}</p></div>{current.ownerId&&<div className="button-row"><button className="secondary" onClick={()=>run(async()=>{const name=prompt('Target name',current.name);if(!name)return;const description=prompt('Research scope',current.description)||'';await api('/targets/'+current.id,{method:'PATCH',body:JSON.stringify({name,description,shared:current.shared})});setCurrent({...current,name,description});await refresh();setVersion(v=>v+1)})}><Settings2 size={14}/> Edit</button><button className="secondary" onClick={()=>run(async()=>{await api('/targets/'+current.id,{method:'PATCH',body:JSON.stringify({name:current.name,description:current.description,shared:!current.shared})});setCurrent({...current,shared:!current.shared});refresh()})}>{current.shared?'Make private':'Share read-only'}</button><button className="secondary" onClick={()=>run(async()=>{if(!confirm('Permanently delete this target, streams, categories and all associated problems?'))return;await api('/targets/'+current.id,{method:'DELETE'});setCurrent(null);refresh()})}><Trash2 size={14}/> Delete</button></div>}</section>
- <div className="target-workspace"><Graph key={current.id+version} targetId={current.id} onProblem={openProblem}/><section className="panel target-controls">{selectedProblem?<><button className="ghost" onClick={()=>setSelectedProblem(null)}><ArrowLeft size={14}/> Back</button><h3>Problem #{selectedProblem.id}</h3><p>{selectedProblem.description}</p>{current.ownerId&&<div className="button-row"><button className="secondary" onClick={()=>run(async()=>{const statement=prompt('Edit problem statement',selectedProblem.description);if(!statement)return;await api('/targets/'+current.id+'/problems/'+selectedProblem.id,{method:'PATCH',body:JSON.stringify({statement})});setSelectedProblem({...selectedProblem,description:statement});setVersion(v=>v+1)})}>Edit problem</button><button className="secondary" onClick={()=>run(async()=>{if(!confirm('Delete this problem?'))return;await api('/targets/'+current.id+'/problems/'+selectedProblem.id,{method:'DELETE'});setSelectedProblem(null);setVersion(v=>v+1)})}>Delete problem</button></div>}<p className="muted">Research and concept tools will be scoped to the current target in the next integration phase.</p></>:<><h3>Research streams</h3>{streams.map(s=><div className="target-entry" key={s.id}><button className="secondary" onClick={()=>{setSelectedStream(s.id);setCategory('');api<any>('/targets/'+current.id+'/expand/'+s.id).then(r=>setCategories(r.nodes.map((n:any)=>n.data)))}}>{s.name} <ChevronRight size={14}/></button>{current.ownerId&&<button className="ghost small" onClick={()=>run(async()=>{const name=prompt('Stream name',s.name);if(!name)return;await api('/targets/'+current.id+'/streams/'+s.id,{method:'PATCH',body:JSON.stringify({name,description:s.description||''})});await refreshStreams()})}>Edit</button>}{current.ownerId&&<button className="ghost small" onClick={()=>run(async()=>{if(!confirm('Delete this stream and its problems?'))return;await api('/targets/'+current.id+'/streams/'+s.id,{method:'DELETE'});await refreshStreams()})}>Delete</button>}</div>)}
- {current.ownerId&&<><label className="field">New stream<input value={streamName} onChange={e=>setStreamName(e.target.value)} placeholder="e.g. Mobility and safety"/></label><label className="field">Stream scope<textarea rows={2} value={streamDesc} onChange={e=>setStreamDesc(e.target.value)}/></label><button className="primary" disabled={streamName.trim().length<3} onClick={()=>run(async()=>{await post('/targets/'+current.id+'/streams',{name:streamName,description:streamDesc});setStreamName('');setStreamDesc('');await refreshStreams()})}><Plus size={16}/> Add stream</button></>}
- {selectedStream&&current.ownerId&&<><hr/><h3>Categories</h3>{categories.map(c=><button className="secondary" key={c.id} onClick={()=>setCategory(c.id)}>{c.label}</button>)}{categories.map(c=><div className="button-row" key={c.id+'edit'}><small>{c.label}</small><button className="ghost small" onClick={()=>run(async()=>{const name=prompt('Category name',c.label);if(!name)return;await api('/targets/'+current.id+'/categories/'+encodeURIComponent(c.id),{method:'PATCH',body:JSON.stringify({name})});const d=await api<any>('/targets/'+current.id+'/expand/'+selectedStream);setCategories(d.nodes.map((n:any)=>n.data));setVersion(v=>v+1)})}>Edit</button><button className="ghost small" onClick={()=>run(async()=>{if(!confirm('Delete category and problems?'))return;await api('/targets/'+current.id+'/categories/'+encodeURIComponent(c.id),{method:'DELETE'});setCategory('');const d=await api<any>('/targets/'+current.id+'/expand/'+selectedStream);setCategories(d.nodes.map((n:any)=>n.data));setVersion(v=>v+1)})}>Delete</button></div>)}<label className="field">New category<input value={categoryName} onChange={e=>setCategoryName(e.target.value)}/></label><button className="secondary" disabled={categoryName.trim().length<3} onClick={()=>run(async()=>{await post('/targets/'+current.id+'/streams/'+selectedStream+'/categories',{name:categoryName});setCategoryName('');const d=await api<any>('/targets/'+current.id+'/expand/'+selectedStream);setCategories(d.nodes.map((n:any)=>n.data));setVersion(v=>v+1)})}>Add category</button></>}
- {category&&current.ownerId&&<><hr/><h3>New problem</h3><textarea rows={3} value={statement} onChange={e=>setStatement(e.target.value)} placeholder="Describe a specific unmet need…"/><button className="primary" disabled={statement.trim().length<20} onClick={()=>run(async()=>{await post('/targets/'+current.id+'/categories/'+encodeURIComponent(category)+'/problems',{statement});setStatement('');setNotice('Problem added to target.');setVersion(v=>v+1)})}>Add problem</button></>}
- </>}</section></div></>}
+ const [view,setView]=useState<'graph'|'directory'>('graph');
+ const [wizard,setWizard]=useState(false);
+ const [form,setForm]=useState({name:'',description:'',shared:false,detail:'standard'});
+ const [suggestions,setSuggestions]=useState<SuggestedStream[]>([]);
+ const [manualStream,setManualStream]=useState('');
+ const [busy,setBusy]=useState(false);
+ const [streams,setStreams]=useState<any[]>([]);
+ const [selectedStream,setSelectedStream]=useState('');
+ const [categories,setCategories]=useState<any[]>([]);
+ const [selectedCategory,setSelectedCategory]=useState('');
+ const [newCategory,setNewCategory]=useState('');const [newProblem,setNewProblem]=useState('');
+ const [newStream,setNewStream]=useState('');const [newDescription,setNewDescription]=useState('');
+ const [selectedProblem,setSelectedProblem]=useState<any>(null);
+ const [error,setError]=useState('');const [notice,setNotice]=useState('');const [version,setVersion]=useState(0);
+ const run=async(fn:()=>Promise<void>)=>{setBusy(true);setError('');try{await fn()}catch(e:any){setError(e.message)}finally{setBusy(false)}};
+ const refresh=async()=>{const d=await api<any>('/targets');setDirectory(d);return d};
+ const open=async(t:Target)=>{
+   setCurrent(t);setView('graph');setWizard(false);setSelectedProblem(null);setSelectedStream('');setSelectedCategory('');setCategories([]);
+   setStreams(t.id==='reference-longevity'?[]:await api<any[]>('/targets/'+t.id+'/streams'));
+   setVersion(v=>v+1);
+ };
+ useEffect(()=>{refresh().then(d=>{if(!d.mine.length)setWizard(true)}).catch((e:any)=>setError(e.message))},[]);
+ const refreshGraph=async()=>{if(current&&current.id!=='reference-longevity')setStreams(await api('/targets/'+current.id+'/streams'));setVersion(v=>v+1)};
+ const fetchCategories=async(sid:string)=>{if(!current)return;const r=await api<Elements>('/targets/'+current.id+'/expand/'+encodeURIComponent(sid));setCategories(r.nodes.map(n=>n.data));setSelectedStream(sid);setSelectedCategory('')};
+ const saveWizard=()=>run(async()=>{
+   const streams=suggestions.filter(x=>x.selected&&x.name.trim().length>=3).map(({name,description})=>({name,description}));
+   const created=await post<Target>('/targets/with-streams',{...form,streams});
+   await refresh();await open(created);setNotice(`Target created with ${streams.length} research streams.`);setSuggestions([]);
+ });
+ const copyCurrent=()=>{if(!current)return;run(async()=>{
+   const copied=await post<Target & {problemCount:number,streamCount:number}>('/targets/'+current.id+'/copy');
+   await refresh();await open(copied);setNotice(`Private editable copy created: ${copied.streamCount} streams and ${copied.problemCount} problems.`);
+ })};
+ const owned=Boolean(current?.ownerId && directory?.mine.some(t=>t.id===current.id));
+ return <div className="app target-app">
+  <aside className="sidebar target-sidebar"><div className="brand"><span className="brandmark"><Network size={19}/></span><div><strong>PROBLEM <b>EXPLORER</b></strong><small>Research workspace</small></div></div>
+   <div className="side-heading">WORKSPACE</div>
+   <button className={'nav '+(view==='graph'?'on':'')} onClick={()=>setView('graph')}><Network size={16}/> Knowledge graph</button>
+   <button className={'nav '+(view==='directory'?'on':'')} onClick={()=>setView('directory')}><BookOpen size={16}/> Target directory</button>
+   <button className="nav" onClick={()=>{setWizard(true);setSuggestions([])}}><Plus size={16}/> Create target</button>
+   <div className="side-heading">MY TARGETS</div>
+   {directory?.mine.map(t=><button className={'stream '+(current?.id===t.id?'on':'')} key={t.id} onClick={()=>run(()=>open(t))}>{t.name}<ChevronRight size={13}/></button>)}
+   {!directory?.mine.length&&<small className="target-sidebar-empty">No targets yet</small>}
+   <div className="side-heading">SHARED RESEARCH</div>
+   <button className={'stream '+(current?.id==='reference-longevity'?'on':'')} onClick={()=>directory?.reference&&run(()=>open(directory.reference))}>Longevity library <ChevronRight size={13}/></button>
+   {directory?.shared.map(t=><button className={'stream '+(current?.id===t.id?'on':'')} key={t.id} onClick={()=>run(()=>open(t))}>{t.name}<ChevronRight size={13}/></button>)}
+   <div className="side-bottom">Private workspaces · Shared targets are read-only until copied.</div>
+  </aside>
+  <main className="main target-main">
+   <header className="topbar"><div><h1>{current?current.name:'Problem Explorer'}</h1><p>{current?(current.description||'Research target'):'Choose a target or create your own research environment'}</p></div><span className="status"><span className="dot"/>{current?(owned?'MY WORKSPACE':'SHARED / READ ONLY'):'NO TARGET SELECTED'}</span></header>
+   {error&&<div className="alert bad">{error}<button onClick={()=>setError('')}>Dismiss</button></div>}
+   {notice&&<div className="alert good">{notice}<button onClick={()=>setNotice('')}>Dismiss</button></div>}
+   {view==='directory'?<section className="panel target-directory-panel"><h2>Target directory</h2><p className="muted">Open a shared target to explore its hierarchy, or copy it to your personal workspace to edit.</p><h3>My targets</h3>{directory?.mine.map(t=><div className="target-entry" key={t.id}><button className="secondary" onClick={()=>run(()=>open(t))}>{t.name}<ChevronRight size={14}/></button><small>{t.description}</small></div>)}<h3>Shared targets</h3>{[...(directory?.shared||[]),...(directory?.reference?[directory.reference]:[])].map(t=><div className="target-entry" key={t.id}><button className="secondary" onClick={()=>run(()=>open(t))}>{t.name}<ChevronRight size={14}/></button><button className="ghost" disabled={busy} onClick={()=>run(async()=>{const copied=await post<Target>('/targets/'+t.id+'/copy');await refresh();await open(copied);setNotice('Created editable private copy.')})}>Copy to my workspace</button><small>{t.description}</small></div>)}</section>:
+   <div className="target-canvas-layout"><div className="target-graph-wrap"><Graph key={(current?.id||'empty')+version} targetId={current?.id||'__empty__'} onProblem={id=>{if(!current)return;run(async()=>setSelectedProblem(await api('/targets/'+current.id+'/problems/'+id)))}}/>
+    {!current&&<div className="target-empty-hint">Start by creating or selecting a research target.</div>}</div>
+    <section className="panel target-context"><h3>{current?'Target workspace':'Getting started'}</h3>
+     {!current?<><p className="muted">A target is the central node. Research streams branch outward into categories and problems.</p><button className="primary" onClick={()=>setWizard(true)}>Create target</button><button className="secondary" onClick={()=>setView('directory')}>Browse shared targets</button></>:
+     <><p className="muted">{owned?'This is your editable research workspace.':'This is a read-only shared target.'}</p>
+      {!owned&&<button className="primary" disabled={busy} onClick={copyCurrent}><FolderPlus size={16}/> Copy into my workspace</button>}
+      {owned&&<div className="button-row target-buttons"><button className="ghost small" onClick={()=>run(async()=>{if(!current)return;const name=prompt('Target name',current.name);if(!name)return;const description=prompt('Scope',current.description)||'';await api('/targets/'+current.id,{method:'PATCH',body:JSON.stringify({name,description,shared:current.shared})});setCurrent({...current,name,description});await refresh()})}>Edit target</button><button className="ghost small" onClick={()=>run(async()=>{await api('/targets/'+current!.id,{method:'PATCH',body:JSON.stringify({name:current!.name,description:current!.description,shared:!current!.shared})});setCurrent({...current!,shared:!current!.shared});await refresh()})}>{current.shared?'Make private':'Share target'}</button><button className="ghost small" onClick={()=>run(async()=>{if(!confirm('Delete this target and its research? This cannot be undone.'))return;await api('/targets/'+current!.id,{method:'DELETE'});setCurrent(null);await refresh()})}>Delete</button></div>}
+      {selectedProblem?<><button className="ghost small" onClick={()=>setSelectedProblem(null)}>← Back</button><h3>Problem #{selectedProblem.id}</h3><p>{selectedProblem.description}</p>{owned&&<div className="button-row"><button className="ghost small" onClick={()=>run(async()=>{const statement=prompt('Problem statement',selectedProblem.description);if(!statement)return;await api('/targets/'+current!.id+'/problems/'+selectedProblem.id,{method:'PATCH',body:JSON.stringify({statement})});setSelectedProblem({...selectedProblem,description:statement});await refreshGraph()})}>Edit</button><button className="ghost small" onClick={()=>run(async()=>{if(!confirm('Delete problem?'))return;await api('/targets/'+current!.id+'/problems/'+selectedProblem.id,{method:'DELETE'});setSelectedProblem(null);await refreshGraph()})}>Delete</button></div>}</>:
+      <><h3>Research streams</h3>{streams.map(t=><button className={'stream '+(selectedStream===t.id?'on':'')} key={t.id} onClick={()=>run(()=>fetchCategories(t.id))}>{t.name}<ChevronRight size={13}/></button>)}
+      {owned&&<><label className="field">Add stream<input value={newStream} onChange={e=>setNewStream(e.target.value)} placeholder="Research stream name"/></label><label className="field">Scope<textarea rows={2} value={newDescription} onChange={e=>setNewDescription(e.target.value)}/></label><button className="secondary" disabled={busy||newStream.trim().length<3} onClick={()=>run(async()=>{await post('/targets/'+current!.id+'/streams',{name:newStream,description:newDescription});setNewStream('');setNewDescription('');await refreshGraph()})}>Add stream</button></>}
+      {selectedStream&&owned&&<><h3>Categories</h3>{categories.map(c=><button className={'stream '+(selectedCategory===c.id?'on':'')} key={c.id} onClick={()=>setSelectedCategory(c.id)}>{c.label}</button>)}<label className="field">New category<input value={newCategory} onChange={e=>setNewCategory(e.target.value)}/></label><button className="secondary" disabled={busy||newCategory.trim().length<3} onClick={()=>run(async()=>{await post('/targets/'+current!.id+'/streams/'+selectedStream+'/categories',{name:newCategory});setNewCategory('');await fetchCategories(selectedStream);await refreshGraph()})}>Add category</button></>}
+      {selectedCategory&&owned&&<><h3>Add problem</h3><textarea rows={3} value={newProblem} onChange={e=>setNewProblem(e.target.value)} placeholder="Describe an unmet need"/><button className="secondary" disabled={busy||newProblem.trim().length<20} onClick={()=>run(async()=>{await post('/targets/'+current!.id+'/categories/'+encodeURIComponent(selectedCategory)+'/problems',{statement:newProblem});setNewProblem('');await refreshGraph()})}>Save problem</button></>}
+      </>}
+     </>}
+    </section></div>}
+   {wizard&&<div className="wizard-backdrop" role="presentation"><section className="wizard-card" role="dialog" aria-modal="true" aria-label="Create research target"><div className="wizard-head"><div><h2>Create research target</h2><p className="muted">Define the center node, then select or customize its research streams.</p></div><button className="ghost" onClick={()=>setWizard(false)}>Close</button></div>
+     <label className="field">Target name<input autoFocus value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Human-centered robotics for longevity"/></label>
+     <label className="field">Research scope<textarea rows={3} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="What issue, population or context will this target explore?"/></label>
+     <label className="field">Initial research depth<select value={form.detail} onChange={e=>setForm({...form,detail:e.target.value})}><option value="outline">Outline · 3 streams</option><option value="standard">Standard · 5 streams</option><option value="detailed">Detailed · 7 streams</option></select></label>
+     <button className="secondary" disabled={busy||form.name.trim().length<3} onClick={()=>run(async()=>{const data=await post<{streams:{name:string,description:string}[]}>('/targets/suggest-streams',form);setSuggestions(data.streams.map(x=>({...x,selected:true})))})}><Sparkles size={15}/>{busy?'Working…':'AI suggest research streams'}</button>
+     {suggestions.length>0&&<><h3>Review suggested research streams</h3><p className="muted">Unverified AI draft. Select, rename, or remove streams before creating the graph.</p><div className="wizard-streams">{suggestions.map((s,i)=><div className="wizard-stream" key={i}><input type="checkbox" checked={s.selected} onChange={e=>setSuggestions(v=>v.map((x,j)=>j===i?{...x,selected:e.target.checked}:x))} aria-label={'Select '+s.name}/><div><input value={s.name} onChange={e=>setSuggestions(v=>v.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/><textarea rows={2} value={s.description} onChange={e=>setSuggestions(v=>v.map((x,j)=>j===i?{...x,description:e.target.value}:x))}/></div></div>)}</div></>}
+     <div className="button-row"><input placeholder="Add your own research stream" value={manualStream} onChange={e=>setManualStream(e.target.value)}/><button className="secondary" disabled={manualStream.trim().length<3} onClick={()=>{setSuggestions(v=>[...v,{name:manualStream.trim(),description:'',selected:true}]);setManualStream('')}}>Add</button></div>
+     <label className="field"><input type="checkbox" checked={form.shared} onChange={e=>setForm({...form,shared:e.target.checked})}/> Share read-only in target directory</label>
+     <div className="wizard-actions"><button className="ghost" onClick={()=>setWizard(false)}>Cancel</button><button className="primary" disabled={busy||form.name.trim().length<3||!suggestions.some(x=>x.selected&&x.name.trim().length>=3)} onClick={saveWizard}>Create target and graph →</button></div>
+    </section></div>}
+  </main>
  </div>;
 }
 
 function Root(){
- const [account,setAccount]=useState<Account|null>(null);const [ready,setReady]=useState(false);const [adminView,setAdminView]=useState(false);
+ const [account,setAccount]=useState<Account|null>(null);const [ready,setReady]=useState(false);const [adminView,setAdminView]=useState(false);const [workspaceMode,setWorkspaceMode]=useState<'targets'|'legacy'>('targets');
  useEffect(()=>{api<{user:Account|null}>('/auth/me').then(r=>setAccount(r.user)).finally(()=>setReady(true))},[]);
  if(!ready)return <div className="auth-screen"><span>Loading Problem Explorer…</span></div>;
  if(!account)return <AuthGate onAuthenticated={setAccount}/>;
- return <><div className="account-strip"><span>{account.name} · Private workspace</span>{account.role==='admin'&&<button onClick={()=>setAdminView(v=>!v)}>{adminView?'Back to workspace':'Administration'}</button>}<button onClick={async()=>{await post('/auth/logout');setAccount(null)}}>Sign out</button></div>{adminView&&account.role==='admin'?<AdminConsole/>:<TargetHome/>}</>;
+ return <><div className="account-strip"><span>{account.name} · Private workspace</span><button onClick={()=>{setAdminView(false);setWorkspaceMode(m=>m==='targets'?'legacy':'targets')}}>{workspaceMode==='targets'?'Research, concepts & matching':'Target workspace'}</button>{account.role==='admin'&&<button onClick={()=>setAdminView(v=>!v)}>{adminView?'Back to workspace':'Administration'}</button>}<button onClick={async()=>{await post('/auth/logout');setAccount(null)}}>Sign out</button></div>{adminView&&account.role==='admin'?<AdminConsole/>:<><div style={{display:workspaceMode==='targets'?'block':'none'}}><TargetHome/></div><div style={{display:workspaceMode==='legacy'?'block':'none'}}><div className="alert" style={{margin:'12px 20px'}}><strong>Legacy research tools</strong> — Research, AI discovery, problem matching, concepts and evaluation are restored here. These endpoints still use the original/shared research context and are <strong>not yet scoped to the selected target</strong>. Do not use them for confidential target-specific research until integration is complete.</div><App/></div></>}</>;
 }
 function App(){
  const [tab,setTab]=useState<'explore'|'research'|'solutions'|'evaluation'|'discover'|'streams'>('explore');

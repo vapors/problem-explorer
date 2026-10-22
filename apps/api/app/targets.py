@@ -5,6 +5,7 @@ No schema rewrite, Neo4j reseed, or changes to existing Stream/Problem records.
 import uuid
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from typing import List
 from .db import query, execute
 
 router=APIRouter(prefix='/api/targets',tags=['targets'])
@@ -17,6 +18,21 @@ class TargetInput(BaseModel):
     name:str=Field(min_length=3,max_length=120)
     description:str=Field(default='',max_length=1500)
     shared:bool=False
+
+class SeedStream(BaseModel):
+    name:str=Field(min_length=3,max_length=120)
+    description:str=Field(default='',max_length=1500)
+
+class TargetWithStreams(TargetInput):
+    streams:List[SeedStream]=Field(default_factory=list,max_length=18)
+
+class SuggestStreamsInput(BaseModel):
+    name:str=Field(min_length=3,max_length=120)
+    description:str=Field(default='',max_length=1500)
+    detail:str=Field(default='standard',pattern='^(outline|standard|detailed)$')
+
+class StreamSuggestions(BaseModel):
+    streams:List[SeedStream]
 
 class StreamInput(BaseModel):
     name:str=Field(min_length=3,max_length=120)
@@ -44,6 +60,65 @@ def create_target(body:TargetInput):
     tid='T'+uuid.uuid4().hex
     execute('CREATE (t:Target {id:$id,name:$name,description:$description,ownerId:$owner,shared:$shared,createdAt:datetime()})',id=tid,name=body.name.strip(),description=body.description.strip(),owner=me(),shared=body.shared)
     return {'id':tid,'name':body.name,'description':body.description,'shared':body.shared}
+
+@router.post('/suggest-streams')
+def suggest_streams(body:SuggestStreamsInput):
+    # AI quota is counted by auth middleware on POST /suggest-streams.
+    from .ai import parse_structured
+    amount={'outline':3,'standard':5,'detailed':7}[body.detail]
+    prompt=(f'Suggest exactly {amount} distinct, practical research streams for a problem-first '
+            f'exploration TARGET: {body.name}. Scope: {body.description}. '
+            'Return only a taxonomy proposal, no asserted facts, invented evidence or solutions. '
+            'Each stream needs a concise name and a one-sentence research scope. '
+            'Avoid overlap. This is an editable unverified draft.')
+    response=parse_structured(StreamSuggestions,prompt)
+    return {'streams':[x.model_dump() for x in response.streams[:amount]],'draft':True}
+
+@router.post('/with-streams',status_code=201)
+def create_with_streams(body:TargetWithStreams):
+    # Single Cypher write: no half-created target if any stream creation fails.
+    tid='T'+uuid.uuid4().hex
+    seed=[{'id':'S'+uuid.uuid4().hex[:16], 'name':x.name.strip(), 'description':x.description.strip()} for x in body.streams]
+    result=execute('''CREATE (t:Target {id:$tid,name:$name,description:$description,ownerId:$owner,shared:$shared,createdAt:datetime()})
+        WITH t UNWIND $streams AS entry
+        CREATE (s:Stream {id:entry.id,name:entry.name,description:entry.description,ownerId:$owner,targetId:$tid,createdAt:datetime(),origin:'user_reviewed_ai_outline'})
+        CREATE (t)-[:HAS_STREAM]->(s)
+        RETURN count(s) AS created''',tid=tid,name=body.name.strip(),description=body.description.strip(),owner=me(),shared=body.shared,streams=seed)
+    # Empty stream lists must be handled separately because UNWIND [] suppresses rows but still creates t.
+    return {'id':tid,'name':body.name,'description':body.description,'ownerId':me(),'shared':body.shared,'streamCount':len(seed)}
+
+@router.post('/{tid}/copy',status_code=201)
+def copy_target(tid:str):
+    if tid!='reference-longevity':source=accessible(tid)
+    else:source={'name':'Longevity research library','description':'Private copy of original research dataset'}
+    new_id='T'+uuid.uuid4().hex
+    # A single transaction clones the complete source tree, without touching originals.
+    from .db import driver
+    import os
+    with driver().session(database=os.getenv('NEO4J_DATABASE','neo4j')) as session:
+        def work(tx):
+            tx.run('CREATE (t:Target {id:$id,name:$name,description:$description,ownerId:$owner,shared:false,createdAt:datetime()})',id=new_id,name=source['name']+' (copy)',description=source.get('description') or '',owner=me()).consume()
+            if tid=='reference-longevity':
+                stream_rows=tx.run('MATCH (s:Stream) WHERE s.ownerId IS NULL RETURN s.id AS id,s.name AS name,s.description AS description').data()
+            else:
+                stream_rows=tx.run('MATCH (t:Target {id:$source})-[:HAS_STREAM]->(s:Stream) RETURN s.id AS id,s.name AS name,s.description AS description',source=tid).data()
+            count=0
+            for stream in stream_rows:
+                sid='S'+uuid.uuid4().hex[:16]
+                tx.run('MATCH (t:Target {id:$tid}) CREATE (s:Stream {id:$sid,name:$name,description:$desc,ownerId:$owner,targetId:$tid}) CREATE (t)-[:HAS_STREAM]->(s)',tid=new_id,sid=sid,name=stream['name'],desc=stream.get('description') or '',owner=me()).consume()
+                cat_rows=tx.run('MATCH (s:Stream {id:$id})-[:CONTAINS]->(c:Category) RETURN c.id AS id,c.name AS name',id=stream['id']).data()
+                for cat in cat_rows:
+                    cid=sid+':'+uuid.uuid4().hex[:10]
+                    tx.run('MATCH (s:Stream {id:$sid}) CREATE (c:Category {id:$cid,name:$name,ownerId:$owner,targetId:$tid}) CREATE (s)-[:CONTAINS]->(c)',sid=sid,cid=cid,name=cat['name'],owner=me(),tid=new_id).consume()
+                    problems=tx.run('MATCH (c:Category {id:$cid})-[:CONTAINS]->(p:Problem) RETURN p.description AS description,p.origin AS origin',cid=cat['id']).data()
+                    for prob in problems:
+                        # Reserve unique numeric IDs within the same write transaction.
+                        counter=tx.run('MATCH (p:Problem) WITH coalesce(max(p.id),0) AS base MERGE (x:IdCounter {name:"problem"}) ON CREATE SET x.next=0 SET x.next=CASE WHEN x.next < base THEN base ELSE x.next END SET x.next=x.next+1 RETURN x.next AS n').single()['n']
+                        tx.run('MATCH (c:Category {id:$cid}) CREATE (p:Problem {id:$pid,description:$description,ownerId:$owner,targetId:$tid,streamId:$sid,streamName:$sname,categoryName:$cname,origin:"copied_reference",createdAt:datetime()}) CREATE (c)-[:CONTAINS]->(p)',cid=cid,pid=counter,description=prob['description'],owner=me(),tid=new_id,sid=sid,sname=stream['name'],cname=cat['name']).consume()
+                        count+=1
+            return count,len(stream_rows)
+        problems,streams=session.execute_write(work)
+    return {'id':new_id,'name':source['name']+' (copy)','ownerId':me(),'shared':False,'streamCount':streams,'problemCount':problems}
 
 @router.patch('/{tid}')
 def update_target(tid:str,body:TargetInput):

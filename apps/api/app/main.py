@@ -43,7 +43,7 @@ async def auth_guard(request:Request, call_next):
         user=auth.session_user(request)
         if not user:return JSONResponse({'detail':'Authentication required'},status_code=401)
         token=current_user.set(user['id'])
-        ai_paths=('/research','/concepts/generate','/discoveries/search','/match','/evaluate')
+        ai_paths=('/research','/concepts/generate','/discoveries/search','/match','/evaluate','/suggest-streams')
         metered=request.method=='POST' and path.endswith(ai_paths)
         if metered and not auth.reserve_ai_request(user['id']):
             current_user.reset(token)
