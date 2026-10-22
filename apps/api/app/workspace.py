@@ -102,7 +102,7 @@ def save_taxonomy(sid:str,body:SaveTaxonomy):
 def admin_overview(request:Request):
     require_admin(request)
     with auth.conn() as c:
-        users=[dict(r) for r in c.execute('SELECT id,email,name,role,status,created_at FROM users ORDER BY created_at DESC LIMIT 250')]
+        users=[dict(r) for r in c.execute('SELECT id,email,name,role,status,ai_daily_limit,created_at FROM users ORDER BY created_at DESC LIMIT 250')]
         usage=[dict(r) for r in c.execute('SELECT user_id,day,requests FROM ai_usage ORDER BY day DESC,requests DESC LIMIT 250')]
         queue=[dict(r) for r in c.execute('SELECT id,owner_id,kind,state,processed,error,created_at FROM embedding_jobs ORDER BY created_at DESC LIMIT 60')]
     return {'users':users,'usage':usage,'jobs':queue,'dailyLimit':int(os.getenv('DAILY_AI_REQUEST_LIMIT','15'))}
@@ -115,6 +115,7 @@ def admin_queue_shared(request:Request):
 class AccountUpdate(BaseModel):
     role:str|None=Field(default=None,pattern='^(admin|user)$')
     status:str|None=Field(default=None,pattern='^(active|disabled)$')
+    ai_daily_limit:int|None=Field(default=None,ge=0,le=100000)
 
 @router.patch('/admin/users/{user_id}')
 def admin_update(user_id:str,body:AccountUpdate,request:Request):
@@ -124,5 +125,8 @@ def admin_update(user_id:str,body:AccountUpdate,request:Request):
         target=c.execute('SELECT id FROM users WHERE id=?',(user_id,)).fetchone()
         if not target:raise HTTPException(404,'User not found')
         if body.role is not None:c.execute('UPDATE users SET role=? WHERE id=?',(body.role,user_id))
-        if body.status is not None:c.execute('UPDATE users SET status=? WHERE id=?',(body.status,user_id))
+        if body.status is not None:
+            c.execute('UPDATE users SET status=? WHERE id=?',(body.status,user_id))
+            if body.status=='disabled':c.execute('DELETE FROM sessions WHERE user_id=?',(user_id,))
+        if body.ai_daily_limit is not None:c.execute('UPDATE users SET ai_daily_limit=? WHERE id=?',(body.ai_daily_limit,user_id))
     return {'ok':True}

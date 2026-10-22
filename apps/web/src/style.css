@@ -21,3 +21,18 @@
 .admin-table td small{display:block;opacity:.7;margin-top:3px}
 .admin-table select{min-width:110px;border:1px solid #dae1e4;border-radius:7px;padding:7px;background:#fff}
 .account-strip button{margin-left:14px}
+/* v0.6 target-first workspace */
+.target-home{max-width:1600px;margin:0 auto;padding:22px 26px;color:var(--text,#dce8e8)}
+.target-header,.target-toolbar{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:20px}
+.target-header h1{margin:0}
+.target-directory{display:grid;grid-template-columns: minmax(320px,1fr) minmax(320px,1fr);gap:20px}
+.target-directory .panel,.target-workspace .panel,.target-toolbar{padding:22px}
+.target-entry{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(150,160,170,.14)}
+.target-entry>button:first-child{flex:1;text-align:left;justify-content:space-between}
+.target-entry small{width:100%;opacity:.65}
+.target-workspace{display:grid;grid-template-columns:minmax(450px, 1.8fr) minmax(320px,1fr);gap:18px;align-items:start}
+.target-workspace .graph-panel{min-height:600px}
+.target-controls{display:flex;flex-direction:column;gap:12px;max-height:80vh;overflow:auto}
+.target-controls textarea{width:100%;min-height:72px}
+.target-toolbar .button-row{flex-wrap:wrap}
+@media(max-width:900px){.target-directory,.target-workspace{grid-template-columns:1fr}.target-home{padding:12px}.target-header,.target-toolbar{flex-wrap:wrap}}

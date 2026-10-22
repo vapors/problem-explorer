@@ -49,6 +49,9 @@ def init_db():
             CREATE INDEX IF NOT EXISTS sessions_by_user ON sessions(user_id);
             CREATE TABLE IF NOT EXISTS ai_usage (user_id TEXT NOT NULL REFERENCES users(id), day TEXT NOT NULL, requests INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(user_id,day));
         ''')
+        cols={r[1] for r in c.execute('PRAGMA table_info(users)')}
+        if 'ai_daily_limit' not in cols:
+            c.execute('ALTER TABLE users ADD COLUMN ai_daily_limit INTEGER')
 
 def public_user(user):
     return {'id':user['id'],'email':user['email'],'name':user['name'],'role':user['role']}
@@ -155,6 +158,10 @@ def logout(request:Request,response:Response):
 def reserve_ai_request(user_id: str) -> bool:
     """Simple shared, atomic daily request cap; reservations are consumed on API failure too."""
     cap = max(0,int(os.getenv('DAILY_AI_REQUEST_LIMIT','15')))
+    with conn() as c:
+        row=c.execute('SELECT ai_daily_limit FROM users WHERE id=?',(user_id,)).fetchone()
+        if row is None:return False
+        if row['ai_daily_limit'] is not None:cap=max(0,int(row['ai_daily_limit']))
     today = datetime.now(timezone.utc).date().isoformat()
     with write_lock:
         with conn() as c:

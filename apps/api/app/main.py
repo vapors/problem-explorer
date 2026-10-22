@@ -371,3 +371,6 @@ def evaluate_solution(sid:str):
 # Register workspace and administrator APIs separately from the legacy research endpoints.
 from .workspace import router as workspace_router
 app.include_router(workspace_router)
+
+from .targets import router as targets_router
+app.include_router(targets_router)
