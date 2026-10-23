@@ -1,154 +1,87 @@
-# Problem Explorer · v0.1.0
+# Problem Explorer v0.8.0 — Immersive Network Workspace
 
-A runnable, local-first longevity design research platform built with **Neo4j, FastAPI, React, Cytoscape.js, OpenAI Responses API, and Structured Outputs**. Contains all **498** original Stanford × LSE problem statements, **40** subcategories and **4** streams. Includes an interactive graph, searchable library, on-demand research, saved solutions, AI-suggested problem matching, and five-factor concept evaluation.
+**Local upgrade candidate. Not deployed to production.**
 
-> **Prototype / research software.** AI-generated sources and claims are always stored as `needs_review`, because structured extraction is not independent verification. Ratings are provisional design judgments. This application is not a medical device or medical advice.
+Problem Explorer remains one integrated, target-scoped research platform. v0.8 replaces the persistent sidebar/Cytoscape split view with a full-viewport amCharts 5 force-directed ontology. Every existing workflow now opens as a floating, draggable, resizable, collapsible panel. A light/dark monochrome theme persists per browser.
 
-## Quick start · Docker Desktop / Docker Engine
+## Preserved functionality and data isolation
 
-Requirements: Docker Engine/Compose v2 (or Docker Desktop) and a free port 8080. No Python/Node installation required for this path.
+- **Neo4j Community** owns Targets, Streams, Categories, Problems, Findings, source relationships, concept drafts, saved concepts, matches and evaluations. No graph data was moved to SQLite.
+- **SQLite** (`apps/api/data/auth.sqlite3`, overridable by `AUTH_DB_PATH`) retains authentication, Google SSO, usage allowances and indexing-job state.
+- All original target-scoped endpoints for research, discovery, taxonomy, concept generation, matching, evaluation, admin, directory, ownership and sharing remain in place.
+- Shared Targets remain read-only; copying makes an independently editable structural clone. The copy does not duplicate findings, runs, embeddings or concepts.
+- Background embedding jobs and daily AI request allowances remain governed by the API. No database reset or migration is performed by this release.
+- This release adds a read-only, target-authorized `GET /api/targets/{tid}/amcharts-tree` endpoint. It uses Neo4j `elementId()` for renderer keys and lateral `crossLinks`; each Problem also carries the existing numeric `recordId` for CRUD/detail endpoint compatibility.
 
-```bash
-unzip longevity-atlas-v0.1.0.zip
-cd longevity-atlas
-cp .env.example .env
-# Edit .env: replace NEO4J_PASSWORD with a long, strong password
-# Optionally set OPENAI_API_KEY for AI features
-# NEVER put secrets in your browser JavaScript.
-docker compose up -d --build
-docker compose logs -f api
+## Local setup (Windows)
+
+1. Preserve the existing root `.env`, installed Neo4j Community, **Python 3.12** venv at `apps/api/.venv/`, SQLite data and graph data.
+2. Copy source files over the existing checkout **without deleting** `.env`, `.venv`, `apps/api/data/` or other persistent user data.
+3. **Run npm locally from `apps/web/`**, not globally and not from a CDN:
+
+   ```powershell
+   cd C:\Projects\problem-explorer\apps\web
+   npm install @amcharts/amcharts5
+   npm install react-rnd
+   npm run build
+   ```
+
+   The ZIP does not include `node_modules` or a regenerated npm lockfile because the npm registry was inaccessible in the packaging environment. The first `npm install` creates `package-lock.json` using real resolved package metadata; keep that generated lockfile in source control for subsequent `npm ci` builds. Do **not** reuse the v0.7.0 package lock with the new manifest.
+
+4. Run `start-dev.cmd` as before. It uses `apps/api/.venv/Scripts/python.exe`, not system Python 3.14. The existing `requests` dependency remains in `apps/api/requirements.txt` for Google identity transport.
+5. Verify the target picker, nested drill-down, problem modal and every research workflow. If live Neo4j or authentication fails, check the existing local settings rather than resetting data.
+
+## UI controls
+
+- Drag a panel by its title bar only; forms, tables and editable text do not initiate dragging.
+- Resize from the edges; collapse via the up chevron; close and reopen from **Workspaces** or its navigation entries.
+- **Overview** returns the target summary and searchable problem list; the reset-layout icon restores default panel coordinates.
+- Single-click on a Target, Stream or Category uses native hierarchy expand/collapse; clicking a Problem opens its detail modal. Source links and concept/research actions remain available there.
+- The theme icon toggles the exact light/dark monotone palette; pan/zoom controls live on the graph canvas.
+
+## Validation status
+
+- Python compilation and all **11 offline API contract tests** pass.
+- All three TSX components parse with the TypeScript parser.
+- **Frontend typechecking/build, live Neo4j Cypher integration and end-to-end browser interactions were NOT validated here:** the npm registry was unreachable and there is no live database or configured local application in this sandbox.
+- Do not deploy to production before `npm run build` passes on the actual installation and shared/read-only, workflow and cross-link tests pass with Neo4j.
+
+See `RELEASE-v0.8.0-NETWORK-WORKSPACE.md` for the changed-file map, acceptance checklist and rollback plan.
+
+## Reset and 498-problem reference seed (destructive)
+
+**Never run this against production as a casual update.** It deletes *all Neo4j nodes*, including old research and users' graph data. It also deletes registered accounts, sessions, usage counters and embedding jobs in the configured authentication SQLite database. Your `.env`, Neo4j server installation, and source CSV are retained. The command automatically makes a timestamped SQLite snapshot; **back up Neo4j separately** before running. Stop FastAPI before resetting; leave Neo4j running.
+
+From `apps/api` using the real virtual environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.bootstrap --reset-all --confirm DELETE-ALL-RESEARCH-AND-USERS
 ```
 
-**Open http://localhost:8080**. Neo4j Browser is available at **http://localhost:7474** from the same computer only. Login: `neo4j` + the password in `.env`.
+On an **empty Neo4j database**, seed only the original reference without resetting users:
 
-The importer runs idempotently on API startup. Initial Neo4j setup can take a minute. Check:
-
-```bash
-curl http://localhost:8080/api/health
-# expected: problemCount 498, neo4j true
+```powershell
+.\.venv\Scripts\python.exe -m app.bootstrap --seed-reference
 ```
 
-Docker commands:
+The seed operation refuses to reseed if `reference-longevity` already exists. At startup, `AUTO_SEED` is intentionally ignored—there are no implicit destructive operations.
 
-```bash
-docker compose ps
-docker compose logs -f
-docker compose restart api
-docker compose down             # keeps data volumes
-docker compose down -v          # DANGER: destroys the Neo4j database
+### First administrator
+
+After starting FastAPI, register your own account normally, then stop or leave the server online and run from `apps/api`:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.bootstrap --promote-email YOUR_REGISTERED_EMAIL
 ```
 
-## OpenAI key and structured research
+Sign out and sign back in to see **Administration**. For future accounts, change roles and daily AI limits inside the admin UI.
 
-Set `OPENAI_API_KEY` in `.env`, restart the backend with `docker compose up -d --force-recreate api`.
+## Production safeguards
 
-- **Problem research**: calls the OpenAI Responses API with `web_search` to obtain research notes; then passes those notes to a **Pydantic-enforced Structured Outputs** parse. Each record includes source URL, title, publication date, population, claim, statistic, limitations, and confidence.
-- **Concept matching**: local token-based candidate retrieval from the 498 statements, then OpenAI Structured Outputs classify candidate `problem_id`, relationship (`direct`, `partial`, `indirect`, etc.), 0–100 *relevance* (not efficacy), reasoning, assumptions, confidence.
-- **Concept evaluation**: Structured Outputs with exactly five factors: desirability, feasibility, viability, impact, coverage. Each has a nullable 1–5 score, confidence, rationale, evidence URLs, and unanswered questions. This allows unknowns instead of fabricated values.
-- Each response is validated by Pydantic **before** graph persistence. IDs are checked against existing records. Research and evaluations are timestamped and kept in Neo4j.
-- Search results may include URLs that are stale, misattributed, or not substantively supportive. **v0.1 does not independently download and verify every source page**. All generated findings remain `needs_review`, and nothing is labeled externally verified.
-- *Search costs API credits*. OpenAI API billing is separate from ChatGPT subscriptions. Model availability and `web_search` support depend on your API account; edit `.env` models if needed.
+The existing DirectAdmin VPS uses `/home/siteadmin/domains/explorer.pixelandpiece.com/problem-explorer/`, `problem-explorer.service` on port 8181, a native Neo4j service, and Nginx/Apache reverse proxying. **Do not deploy this candidate over your functioning v0.7.0 production server before successful local build and integration tests.** See `deploy/directadmin/README.md` for the **native Ubuntu 24.04 / DirectAdmin / systemd / Neo4j deployment runbook**, and `RELEASE-v0.8.0-NETWORK-WORKSPACE.md` for the v0.8 test matrix.
 
-### Structured response schemas
+Set `AUTH_SECURE_COOKIE=true` and both `CORS_ORIGINS` and `PUBLIC_ORIGINS` to `https://explorer.pixelandpiece.com` for production. Keep `AUTH_DB_PATH` an absolute persistent path. Set a correct `DATA_FILE` location for the 498-problem CSV. Do not deploy `.env` or SQLite/Neo4j databases with source.
 
-Defined and versionable in `apps/api/app/schemas.py`:
+## Further validation
 
-- `ResearchResult` → `SourceClaim[]`, gaps, conflicts, follow-up questions
-- `MatchingResult` → `ProblemMatch[]`, missing information
-- `EvaluationResult` → `FactorRating[]`, assumptions, risks, next research
-
-The OpenAI backend functions are in `apps/api/app/ai.py`. Schema changes may require prompt updates. Sources and findings are stored separately; one source can back multiple findings.
-
-## Local development with a Python virtual environment
-
-Docker is recommended for Neo4j even when developing the Python app inside a venv:
-
-```bash
-docker compose up -d neo4j
-cd apps/api
-python3 -m venv .venv
-source .venv/bin/activate     # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-cd ../..
-export NEO4J_URI=bolt://localhost:7687
-export NEO4J_USER=neo4j
-export NEO4J_PASSWORD='YOUR_PASSWORD_FROM_DOTENV'
-export DATA_FILE="$PWD/data/problems.csv"
-export OPENAI_API_KEY='YOUR_KEY_IF_USING_AI'
-export CORS_ORIGINS='http://localhost:5173'
-cd apps/api
-uvicorn app.main:app --reload --port 8000
-```
-
-In another terminal:
-
-```bash
-cd apps/web
-npm install
-npm run dev
-```
-
-For local Vite development, `/api/` is proxied to `http://localhost:8000` (see `vite.config.ts`). Open http://localhost:5173.
-
-## REST API quick reference
-
-| Route | Purpose |
-|---|---|
-| `GET /api/health` | Backend readiness and AI key status |
-| `GET /api/stats` | Stream counts |
-| `GET /api/hierarchy` | Stream → category hierarchy |
-| `GET /api/graph/root` | Root graph |
-| `GET /api/graph/expand/{id}` | Progressive node expansion (`S1`, `S1:1A`, `P37`) |
-| `GET /api/problems?q=...&stream=S1` | Search/filter original problems |
-| `GET /api/problems/{id}` | Problem and saved findings |
-| `POST /api/problems/{id}/research` | Web search + structured finding extraction |
-| `POST /api/solutions` | Save concept |
-| `GET /api/solutions` | List concepts |
-| `GET /api/solutions/{id}` | Linked problems and past evaluations |
-| `POST /api/solutions/{id}/match` | Find suggested relationships |
-| `POST /api/solutions/{id}/evaluate` | Five-factor evaluation |
-
-Interactive API specification: http://localhost:8000/docs when running backend directly (API is not directly exposed by Docker; `/api/` is reverse proxied through web).
-
-## Files and modules
-
-```text
-longevity-atlas/
-  apps/api/app/
-    ai.py           research, matches and evaluation prompts
-    schemas.py      validated OpenAI structured schemas
-    db.py           Neo4j driver and queries
-    seed.py         idempotent CSV importer and constraints
-    main.py         FastAPI routes and persistence
-  apps/web/src/
-    main.tsx        Graph explorer, research and evaluation UI
-    style.css       Responsive dark interface
-  data/problems.csv  498 problem records, stable IDs
-  deploy/directadmin/README.md
-  docker-compose.yml
-  .env.example
-```
-
-## DirectAdmin VPS deployment
-
-See **`deploy/directadmin/README.md`**. Docker Compose runs on the VPS, and your DirectAdmin-supported Nginx/Apache customization can reverse proxy the app from `127.0.0.1:8080` through HTTPS. This is a **single-user prototype without login/authentication**; **do not expose it to the public Internet without an access gateway (HTTP auth, VPN, or SSO)**. The app and database should not run as publicly accessible open endpoints.
-
-### Known boundaries for v0.1
-
-- The initial graph is a browsable hierarchy. AI-suggested cross-stream semantic edge visualization, evidence review approvals, automatic paper-text verification, shared accounts, real vector search, deduplicated research jobs, configurable weighted scoring, and detailed factor evidence drilldowns are planned future iterations.
-- Local candidate matching uses keyword token recall before the structured AI classification step. It can miss conceptual synonyms; vector embeddings and hybrid retrieval are recommended for v0.2.
-- The radar chart plots unrated factors at the origin for visualization only; the underlying score remains `null`.
-- Research search calls can take a while; the v0.1 synchronous request implementation should be replaced with a background job queue before high-volume deployment.
-- No built-in concurrency limits, request authentication, billing caps, or automated backups. Use a private deployment.
-
-## License / content
-
-Problem descriptions originate from the user-created Master Longevity Problem Library. This package is a project prototype for local experimentation. Before commercial or public use, add an explicit license and confirm rights for any later-attached research documents.
-
-## v0.2.0 discovery upgrade
-
-See [UPGRADE-v0.2.md](UPGRADE-v0.2.md) for safe upgrade steps, hybrid search, embeddings, AI problem discovery, review/approval, duplication checks, and persistence of accepted problems in Neo4j.
-
-
-## v0.3 Concept Generation
-See `UPGRADE-v0.3.md` for installation and endpoints. Generate drafts from Problem research; review before saving to Solutions and evaluating.
+From the project root run `apps/api/.venv/Scripts/python.exe -m unittest discover -s tests -v` (Windows) or the corresponding Python 3.12 interpreter. Run `npm run build` from `apps/web` after npm installs the new packages. On production staging, always run both sets of checks before service cutover.

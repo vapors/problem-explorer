@@ -52,7 +52,7 @@ class EvaluationResult(BaseModel):
 
 class DiscoveryCandidate(BaseModel):
     statement: str = Field(min_length=20, max_length=600)
-    stream_id: Literal['S1','S2','S3','S4']
+    stream_id: str
     category_id: str = Field(description='Existing category ID from supplied category list')
     affected_populations: list[str]
     contexts: list[str]

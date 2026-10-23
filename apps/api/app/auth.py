@@ -159,8 +159,8 @@ def reserve_ai_request(user_id: str) -> bool:
     """Simple shared, atomic daily request cap; reservations are consumed on API failure too."""
     cap = max(0,int(os.getenv('DAILY_AI_REQUEST_LIMIT','15')))
     with conn() as c:
-        row=c.execute('SELECT ai_daily_limit FROM users WHERE id=?',(user_id,)).fetchone()
-        if row is None:return False
+        row=c.execute('SELECT ai_daily_limit,status FROM users WHERE id=?',(user_id,)).fetchone()
+        if row is None or row['status']!='active':return False
         if row['ai_daily_limit'] is not None:cap=max(0,int(row['ai_daily_limit']))
     today = datetime.now(timezone.utc).date().isoformat()
     with write_lock:

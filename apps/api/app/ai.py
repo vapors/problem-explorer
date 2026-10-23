@@ -2,7 +2,7 @@ import os
 from openai import OpenAI
 from .schemas import ResearchResult, MatchingResult, EvaluationResult
 
-SYSTEM = '''You are a careful longevity design research analyst. Clearly distinguish sourced evidence from hypotheses and estimates. Never invent studies, citations, data, verified outcomes, or product capabilities. Return unknown when evidence is insufficient. Be alert to ageism and to variation within older populations. Avoid medical treatment advice.'''
+SYSTEM = '''You are a careful problem-first research and design analyst. Clearly distinguish sourced evidence from hypotheses and estimates. Never invent studies, citations, data, verified outcomes, or product capabilities. Return unknown when evidence is insufficient. Avoid stereotyping affected populations and distinguish hypotheses from evidence. Avoid medical treatment advice.'''
 
 def client():
     if not os.getenv('OPENAI_API_KEY'): raise ValueError('OPENAI_API_KEY is not configured. Add it to your server .env file.')
@@ -16,7 +16,7 @@ def parse_structured(schema, prompt):
 def research(problem_id,description,focus):
     # Phase 1: web search (retrieval), phase 2: validated Pydantic extraction.
     # URLs are generated from model-visible search results; source review remains required.
-    response=client().responses.create(model=os.getenv('OPENAI_RESEARCH_MODEL','gpt-4.1'),tools=[{'type':'web_search'}],instructions=SYSTEM,input=f'Research the longevity issue: {description}. Focus: {focus}. Find original or trustworthy sources, published evidence, competing findings and concrete limitations. Give explicit source URLs and concise factual descriptions. Do not claim a study supports a statistic without source confirmation.')
+    response=client().responses.create(model=os.getenv('OPENAI_RESEARCH_MODEL','gpt-4.1'),tools=[{'type':'web_search'}],instructions=SYSTEM,input=f'Research the specific user-defined problem: {description}. Focus: {focus}. Find original or trustworthy sources, published evidence, competing findings and concrete limitations. Give explicit source URLs and concise factual descriptions. Do not claim a study supports a statistic without source confirmation.')
     notes=response.output_text
     if not notes: raise ValueError('Web research returned no text. Try again.')
     prompt=f'''Convert these web research notes to structured findings about problem #{problem_id}: {description}.
@@ -46,14 +46,14 @@ CONCEPT:\n{concept}\nLINKED PROBLEM MATCHES:\n{matches}\nSOURCED RESEARCH:\n{fin
 
 def discover(topic, categories, known):
     from .schemas import DiscoveryResult
-    response=client().responses.create(model=os.getenv('OPENAI_RESEARCH_MODEL','gpt-4.1'),tools=[{'type':'web_search'}],instructions=SYSTEM,input=f'Discover specific, observable unmet difficulties faced during aging related to: {topic}. Search reputable research and first-hand published reports. Provide attributable URLs and describe uncertainty. Avoid proposing products or solutions. Existing themes include: {known[:8000]}')
+    response=client().responses.create(model=os.getenv('OPENAI_RESEARCH_MODEL','gpt-4.1'),tools=[{'type':'web_search'}],instructions=SYSTEM,input=f'Discover specific, observable unmet problems related to: {topic}. Search reputable research and first-hand published reports. Provide attributable URLs and describe uncertainty. Avoid proposing products or solutions. Existing themes include: {known[:8000]}')
     notes=response.output_text
     if not notes: raise ValueError('No research notes returned')
-    prompt=f"""Use ONLY the research notes below to propose at most 10 atomic, distinct problems, not solutions, not diagnoses, not broad risk factors. Each proposed problem needs at least one citation URL that occurs verbatim in the provided notes. Do not invent sources. Pick exactly one stream ID S1..S4 and a category_id from this exact list: {categories}. Prefer an existing category. Exclude problems that are basically the same as these existing library samples: {known[:13000]}. If evidence is inadequate, return zero candidates and identify research gaps. Topic: {topic}. RESEARCH NOTES: {notes[:35000]}"""
+    prompt=f"""Use ONLY the research notes below to propose at most 10 atomic, distinct problems, not solutions, not diagnoses, not broad risk factors. Each proposed problem needs at least one citation URL that occurs verbatim in the provided notes. Do not invent sources. Pick the exact stream_id corresponding to the category_id from this list (arbitrary ID strings, not S1–S4): {categories}. Prefer an existing category. Exclude problems that are basically the same as these existing library samples: {known[:13000]}. If evidence is inadequate, return zero candidates and identify research gaps. Topic: {topic}. RESEARCH NOTES: {notes[:35000]}"""
     result=parse_structured(DiscoveryResult,prompt)
     allowed={x['id'] for x in categories}
     # URL provenance is best-effort text checking, followed by human review; model outputs are never treated as verified.
-    result.candidates=[c for c in result.candidates if c.category_id in allowed and c.evidence_urls and all(u.startswith('https://') and u in notes for u in c.evidence_urls)]
+    result.candidates=[c for c in result.candidates if c.category_id in allowed and c.stream_id==next((r['streamId'] for r in categories if r['id']==c.category_id),None) and c.evidence_urls and all(u.startswith('https://') and u in notes for u in c.evidence_urls)]
     return result
 
 

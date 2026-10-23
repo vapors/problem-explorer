@@ -1,42 +1,50 @@
-"""Isolated target hierarchy. Legacy research library is a read-only shared directory entry.
+"""Target/stream/category/problem CRUD. Every mutation verifies target ownership.
 
-No schema rewrite, Neo4j reseed, or changes to existing Stream/Problem records.
+Each target owns a disjoint Neo4j subtree. Shared targets are readable, not writable.
+No global stream or problem endpoints exist.
 """
-import uuid
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+import os, uuid
 from typing import List
-from .db import query, execute
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel,Field
+from .db import query,execute,driver
 
 router=APIRouter(prefix='/api/targets',tags=['targets'])
+REFERENCE='reference-longevity'
 
 def me():
     from .main import uid
     return uid()
+
+def accessible(tid:str,write:bool=False):
+    rows=query('''MATCH (t:Target {id:$tid})
+        WHERE t.ownerId=$owner OR ($allowShared AND t.shared=true)
+        RETURN t.id AS id,t.name AS name,t.description AS description,
+               t.ownerId AS ownerId,t.shared AS shared,t.reference AS reference''',
+        tid=tid,owner=me(),allowShared=not write)
+    if not rows:raise HTTPException(404,'Target not found or access denied')
+    if write and rows[0]['ownerId']!=me():raise HTTPException(403,'Read-only target; copy it to your workspace')
+    return rows[0]
 
 class TargetInput(BaseModel):
     name:str=Field(min_length=3,max_length=120)
     description:str=Field(default='',max_length=1500)
     shared:bool=False
 
-class SeedStream(BaseModel):
+class StreamInput(BaseModel):
     name:str=Field(min_length=3,max_length=120)
     description:str=Field(default='',max_length=1500)
 
 class TargetWithStreams(TargetInput):
-    streams:List[SeedStream]=Field(default_factory=list,max_length=18)
+    streams:List[StreamInput]=Field(min_length=1,max_length=18)
 
-class SuggestStreamsInput(BaseModel):
+class SuggestInput(BaseModel):
     name:str=Field(min_length=3,max_length=120)
     description:str=Field(default='',max_length=1500)
     detail:str=Field(default='standard',pattern='^(outline|standard|detailed)$')
 
-class StreamSuggestions(BaseModel):
-    streams:List[SeedStream]
-
-class StreamInput(BaseModel):
-    name:str=Field(min_length=3,max_length=120)
-    description:str=Field(default='',max_length=1500)
+class Suggestions(BaseModel):
+    streams:List[StreamInput]
 
 class CategoryInput(BaseModel):
     name:str=Field(min_length=3,max_length=120)
@@ -44,126 +52,192 @@ class CategoryInput(BaseModel):
 class ProblemInput(BaseModel):
     statement:str=Field(min_length=20,max_length=600)
 
-def accessible(tid,write=False):
-    row=query('MATCH (t:Target {id:$id}) WHERE t.ownerId=$me OR ($read AND t.shared=true) RETURN t.id AS id,t.name AS name,t.description AS description,t.ownerId AS ownerId,t.shared AS shared',id=tid,me=me(),read=not write)
-    if not row:raise HTTPException(404,'Target not found or access denied')
-    return row[0]
-
 @router.get('')
-def list_targets():
-    mine=query('MATCH (t:Target {ownerId:$me}) RETURN t.id AS id,t.name AS name,t.description AS description,t.shared AS shared,t.ownerId AS ownerId ORDER BY t.name',me=me())
-    shared=query('MATCH (t:Target {shared:true}) WHERE t.ownerId<>$me RETURN t.id AS id,t.name AS name,t.description AS description,t.shared AS shared,t.ownerId AS ownerId ORDER BY t.name',me=me())
-    return {'mine':mine,'shared':shared,'reference':{'id':'reference-longevity','name':'Longevity research library','description':'Original shared reference library (legacy Neo4j data).','shared':True,'readOnly':True}}
-
-@router.post('',status_code=201)
-def create_target(body:TargetInput):
-    tid='T'+uuid.uuid4().hex
-    execute('CREATE (t:Target {id:$id,name:$name,description:$description,ownerId:$owner,shared:$shared,createdAt:datetime()})',id=tid,name=body.name.strip(),description=body.description.strip(),owner=me(),shared=body.shared)
-    return {'id':tid,'name':body.name,'description':body.description,'shared':body.shared}
+def directory():
+    mine=query('MATCH (t:Target {ownerId:$owner}) RETURN t.id AS id,t.name AS name,t.description AS description,t.shared AS shared,t.ownerId AS ownerId ORDER BY t.name',owner=me())
+    shared=query('MATCH (t:Target {shared:true}) WHERE t.ownerId<>$owner RETURN t.id AS id,t.name AS name,t.description AS description,t.shared AS shared,t.ownerId AS ownerId,t.reference AS reference ORDER BY t.name',owner=me())
+    return {'mine':mine,'shared':shared}
 
 @router.post('/suggest-streams')
-def suggest_streams(body:SuggestStreamsInput):
-    # AI quota is counted by auth middleware on POST /suggest-streams.
+def suggestions(body:SuggestInput):
     from .ai import parse_structured
-    amount={'outline':3,'standard':5,'detailed':7}[body.detail]
-    prompt=(f'Suggest exactly {amount} distinct, practical research streams for a problem-first '
-            f'exploration TARGET: {body.name}. Scope: {body.description}. '
-            'Return only a taxonomy proposal, no asserted facts, invented evidence or solutions. '
-            'Each stream needs a concise name and a one-sentence research scope. '
-            'Avoid overlap. This is an editable unverified draft.')
-    response=parse_structured(StreamSuggestions,prompt)
-    return {'streams':[x.model_dump() for x in response.streams[:amount]],'draft':True}
+    count={'outline':3,'standard':5,'detailed':7}[body.detail]
+    prompt=(f'Generate exactly {count} nonoverlapping research streams for this problem-first research TARGET. '
+            f'Target: {body.name}. Scope: {body.description}. Each stream has a short name and one-sentence '
+            'scope. No invented studies, statistics, or solutions; these are editable proposed scopes.')
+    result=parse_structured(Suggestions,prompt)
+    return {'streams':[r.model_dump() for r in result.streams[:count]],'draft':True}
 
 @router.post('/with-streams',status_code=201)
-def create_with_streams(body:TargetWithStreams):
-    # Single Cypher write: no half-created target if any stream creation fails.
+def create_target(body:TargetWithStreams):
     tid='T'+uuid.uuid4().hex
-    seed=[{'id':'S'+uuid.uuid4().hex[:16], 'name':x.name.strip(), 'description':x.description.strip()} for x in body.streams]
-    result=execute('''CREATE (t:Target {id:$tid,name:$name,description:$description,ownerId:$owner,shared:$shared,createdAt:datetime()})
-        WITH t UNWIND $streams AS entry
-        CREATE (s:Stream {id:entry.id,name:entry.name,description:entry.description,ownerId:$owner,targetId:$tid,createdAt:datetime(),origin:'user_reviewed_ai_outline'})
-        CREATE (t)-[:HAS_STREAM]->(s)
-        RETURN count(s) AS created''',tid=tid,name=body.name.strip(),description=body.description.strip(),owner=me(),shared=body.shared,streams=seed)
-    # Empty stream lists must be handled separately because UNWIND [] suppresses rows but still creates t.
-    return {'id':tid,'name':body.name,'description':body.description,'ownerId':me(),'shared':body.shared,'streamCount':len(seed)}
-
-@router.post('/{tid}/copy',status_code=201)
-def copy_target(tid:str):
-    if tid!='reference-longevity':source=accessible(tid)
-    else:source={'name':'Longevity research library','description':'Private copy of original research dataset'}
-    new_id='T'+uuid.uuid4().hex
-    # A single transaction clones the complete source tree, without touching originals.
-    from .db import driver
-    import os
+    entries=[{'id':'S'+uuid.uuid4().hex,'name':x.name.strip(),'description':x.description.strip()} for x in body.streams]
     with driver().session(database=os.getenv('NEO4J_DATABASE','neo4j')) as session:
         def work(tx):
-            tx.run('CREATE (t:Target {id:$id,name:$name,description:$description,ownerId:$owner,shared:false,createdAt:datetime()})',id=new_id,name=source['name']+' (copy)',description=source.get('description') or '',owner=me()).consume()
-            if tid=='reference-longevity':
-                stream_rows=tx.run('MATCH (s:Stream) WHERE s.ownerId IS NULL RETURN s.id AS id,s.name AS name,s.description AS description').data()
-            else:
-                stream_rows=tx.run('MATCH (t:Target {id:$source})-[:HAS_STREAM]->(s:Stream) RETURN s.id AS id,s.name AS name,s.description AS description',source=tid).data()
-            count=0
-            for stream in stream_rows:
-                sid='S'+uuid.uuid4().hex[:16]
-                tx.run('MATCH (t:Target {id:$tid}) CREATE (s:Stream {id:$sid,name:$name,description:$desc,ownerId:$owner,targetId:$tid}) CREATE (t)-[:HAS_STREAM]->(s)',tid=new_id,sid=sid,name=stream['name'],desc=stream.get('description') or '',owner=me()).consume()
-                cat_rows=tx.run('MATCH (s:Stream {id:$id})-[:CONTAINS]->(c:Category) RETURN c.id AS id,c.name AS name',id=stream['id']).data()
-                for cat in cat_rows:
-                    cid=sid+':'+uuid.uuid4().hex[:10]
-                    tx.run('MATCH (s:Stream {id:$sid}) CREATE (c:Category {id:$cid,name:$name,ownerId:$owner,targetId:$tid}) CREATE (s)-[:CONTAINS]->(c)',sid=sid,cid=cid,name=cat['name'],owner=me(),tid=new_id).consume()
-                    problems=tx.run('MATCH (c:Category {id:$cid})-[:CONTAINS]->(p:Problem) RETURN p.description AS description,p.origin AS origin',cid=cat['id']).data()
-                    for prob in problems:
-                        # Reserve unique numeric IDs within the same write transaction.
-                        counter=tx.run('MATCH (p:Problem) WITH coalesce(max(p.id),0) AS base MERGE (x:IdCounter {name:"problem"}) ON CREATE SET x.next=0 SET x.next=CASE WHEN x.next < base THEN base ELSE x.next END SET x.next=x.next+1 RETURN x.next AS n').single()['n']
-                        tx.run('MATCH (c:Category {id:$cid}) CREATE (p:Problem {id:$pid,description:$description,ownerId:$owner,targetId:$tid,streamId:$sid,streamName:$sname,categoryName:$cname,origin:"copied_reference",createdAt:datetime()}) CREATE (c)-[:CONTAINS]->(p)',cid=cid,pid=counter,description=prob['description'],owner=me(),tid=new_id,sid=sid,sname=stream['name'],cname=cat['name']).consume()
-                        count+=1
-            return count,len(stream_rows)
-        problems,streams=session.execute_write(work)
-    return {'id':new_id,'name':source['name']+' (copy)','ownerId':me(),'shared':False,'streamCount':streams,'problemCount':problems}
+            tx.run('CREATE (t:Target {id:$tid,name:$name,description:$description,ownerId:$owner,shared:$shared,createdAt:datetime()})',tid=tid,name=body.name.strip(),description=body.description.strip(),owner=me(),shared=body.shared).consume()
+            if entries:
+                tx.run('''MATCH (t:Target {id:$tid,ownerId:$owner})
+                    UNWIND $streams AS entry
+                    CREATE (s:Stream {id:entry.id,name:entry.name,description:entry.description,ownerId:$owner,targetId:$tid,createdAt:datetime()})
+                    CREATE (t)-[:HAS_STREAM]->(s)''',tid=tid,owner=me(),streams=entries).consume()
+        session.execute_write(work)
+    return {'id':tid,'name':body.name.strip(),'description':body.description.strip(),'ownerId':me(),'shared':body.shared,'streamCount':len(entries)}
+
+@router.get('/{tid}')
+def get_target(tid:str):return accessible(tid)
 
 @router.patch('/{tid}')
 def update_target(tid:str,body:TargetInput):
     accessible(tid,True)
-    execute('MATCH (t:Target {id:$id,ownerId:$owner}) SET t.name=$name,t.description=$description,t.shared=$shared',id=tid,owner=me(),name=body.name.strip(),description=body.description.strip(),shared=body.shared)
+    execute('MATCH (t:Target {id:$tid,ownerId:$owner}) SET t.name=$name,t.description=$description,t.shared=$shared',tid=tid,owner=me(),name=body.name.strip(),description=body.description.strip(),shared=body.shared)
     return {'ok':True}
 
 @router.delete('/{tid}')
 def delete_target(tid:str):
     accessible(tid,True)
-    # Explicitly destructive: only target-scoped nodes, no legacy nodes; attached metadata is deleted.
-    execute('MATCH (t:Target {id:$id,ownerId:$owner}) OPTIONAL MATCH (t)-[:HAS_STREAM]->(s:Stream) OPTIONAL MATCH (s)-[:CONTAINS]->(c:Category) OPTIONAL MATCH (c)-[:CONTAINS]->(p:Problem) DETACH DELETE t,s,c,p',id=tid,owner=me())
+    # Delete target-owned auxiliary records as well as its hierarchy; Source URLs are shared and retained.
+    execute('MATCH (n) WHERE n.targetId=$tid DETACH DELETE n',tid=tid)
+    execute('MATCH (t:Target {id:$tid,ownerId:$owner}) DETACH DELETE t',tid=tid,owner=me())
     return {'ok':True}
 
+@router.post('/{tid}/copy',status_code=201)
+def copy_target(tid:str):
+    src=accessible(tid)
+    new='T'+uuid.uuid4().hex
+    with driver().session(database=os.getenv('NEO4J_DATABASE','neo4j')) as session:
+        def work(tx):
+            tx.run('CREATE (t:Target {id:$tid,name:$name,description:$description,ownerId:$owner,shared:false,createdAt:datetime()})',tid=new,name=src['name']+' (copy)',description=src.get('description') or '',owner=me()).consume()
+            streams=tx.run('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(s:Stream) RETURN s.id AS id,s.name AS name,s.description AS description',tid=tid).data()
+            problem_count=0
+            for s in streams:
+                sid='S'+uuid.uuid4().hex
+                tx.run('MATCH (t:Target {id:$tid}) CREATE (s:Stream {id:$sid,name:$name,description:$desc,ownerId:$owner,targetId:$tid}) CREATE (t)-[:HAS_STREAM]->(s)',tid=new,sid=sid,name=s['name'],desc=s.get('description') or '',owner=me()).consume()
+                cats=tx.run('MATCH (s:Stream {id:$sid})-[:CONTAINS]->(c:Category) RETURN c.id AS id,c.name AS name',sid=s['id']).data()
+                for c in cats:
+                    cid=sid+':'+uuid.uuid4().hex[:12]
+                    tx.run('MATCH (s:Stream {id:$sid}) CREATE (c:Category {id:$cid,name:$name,ownerId:$owner,targetId:$tid}) CREATE (s)-[:CONTAINS]->(c)',sid=sid,cid=cid,name=c['name'],owner=me(),tid=new).consume()
+                    problems=tx.run('MATCH (c:Category {id:$cid})-[:CONTAINS]->(p:Problem) RETURN p.description AS description',cid=c['id']).data()
+                    for p in problems:
+                        pid=tx.run('MERGE (counter:IdCounter {name:"problem"}) ON CREATE SET counter.next=0 SET counter.next=counter.next+1 RETURN counter.next AS id').single()['id']
+                        tx.run('MATCH (c:Category {id:$cid}) CREATE (p:Problem {id:$pid,description:$description,ownerId:$owner,targetId:$tid,streamId:$sid,streamName:$sname,categoryName:$cname,origin:"copied",reviewStatus:"needs_review",createdAt:datetime()}) CREATE (c)-[:CONTAINS]->(p)',cid=cid,pid=pid,description=p['description'],owner=me(),tid=new,sid=sid,sname=s['name'],cname=c['name']).consume()
+                        problem_count+=1
+            return len(streams),problem_count
+        stream_count,problem_count=session.execute_write(work)
+    return {'id':new,'name':src['name']+' (copy)','ownerId':me(),'shared':False,'streamCount':stream_count,'problemCount':problem_count}
+
+@router.get('/{tid}/amcharts-tree')
+def amcharts_tree(tid: str):
+    """Return a target-scoped hierarchy with explicit problem-only lateral links.
+
+    id and crossLinks use Neo4j elementId() for amCharts identity; problem
+    recordId is the existing numeric Problem.id required by all CRUD routes.
+    No findings/concepts are recast as structural child nodes.
+    """
+    accessible(tid)  # Enforce owner/shared-reader authorization before either query.
+    nodes = query('''MATCH (t:Target {id:$tid})
+        OPTIONAL MATCH path=(t)-[:HAS_STREAM|CONTAINS*1..3]->(n)
+        WHERE (length(path)=1 AND n:Stream)
+           OR (length(path)=2 AND n:Category)
+           OR (length(path)=3 AND n:Problem)
+        RETURN elementId(t) AS rootId, t.name AS rootName,
+            collect(DISTINCT {
+                id: elementId(n),
+                parentId: elementId(nodes(path)[-2]),
+                name: CASE WHEN n:Problem THEN n.description ELSE n.name END,
+                type: CASE WHEN n:Stream THEN 'stream'
+                           WHEN n:Category THEN 'category'
+                           WHEN n:Problem THEN 'problem' END,
+                recordId: CASE WHEN n:Problem THEN n.id END
+            }) AS descendants''', tid=tid)
+    if not nodes:
+        raise HTTPException(404, 'Target not found or access denied')
+    root = {'id': nodes[0]['rootId'], 'name': nodes[0]['rootName'],
+            'type': 'target', 'children': []}
+    by_id = {root['id']: root}
+    # Collect and link in separate passes; Cypher traversal row order is not guaranteed.
+    descendants = [row for row in nodes[0]['descendants'] if row.get('id') and row.get('type')]
+    for item in descendants:
+        child = {'id': item['id'], 'name': item.get('name') or '',
+                 'type': item['type'], 'children': []}
+        if child['type'] == 'problem':
+            child['value'] = 100
+            child['recordId'] = item['recordId']
+            child['crossLinks'] = []
+        by_id[child['id']] = child
+    for item in descendants:
+        parent = by_id.get(item.get('parentId'))
+        if parent is not None:
+            parent['children'].append(by_id[item['id']])
+    # Never connect into another target even if a malformed cross-target
+    # relationship exists. Both endpoints must be in this target's hierarchy.
+    lateral = query('''MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)
+          -[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem)
+        MATCH (p)-[:RELATED_TO|CAUSES|SUPPORTED_BY]-(other:Problem)
+        WHERE EXISTS {
+            MATCH (t)-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)
+              -[:CONTAINS]->(other)
+        }
+        RETURN elementId(p) AS sourceId,
+               collect(DISTINCT elementId(other)) AS destinationIds''', tid=tid)
+    for row in lateral:
+        source = by_id.get(row['sourceId'])
+        if source is not None and source['type'] == 'problem':
+            source['crossLinks'] = sorted({destination for destination in row['destinationIds']
+                                            if destination != row['sourceId']
+                                            and destination in by_id
+                                            and by_id[destination]['type'] == 'problem'})
+    def sort_children(item):
+        item['children'].sort(key=lambda child: (child['name'].casefold(), child['id']))
+        for child in item['children']:
+            sort_children(child)
+        if item['type'] == 'problem':
+            item.pop('children')  # Leaf contract has value and crossLinks, no fake hierarchy.
+    sort_children(root)
+    return root
+
+
 @router.get('/{tid}/graph')
-def target_graph(tid:str):
-    if tid=='reference-longevity':
-        rows=query('MATCH (s:Stream) WHERE s.ownerId IS NULL OPTIONAL MATCH (s)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem) RETURN s.id AS id,s.name AS name,count(DISTINCT p) AS count ORDER BY s.id')
-        title='Longevity research library'
-    else:
-        t=accessible(tid); title=t['name']
-        rows=query('MATCH (t:Target {id:$id})-[:HAS_STREAM]->(s:Stream) RETURN s.id AS id,s.name AS name,0 AS count ORDER BY s.name',id=tid)
-    nodes=[{'data':{'id':'root','label':title,'type':'root'}}]
-    nodes += [{'data':{'id':r['id'],'label':r['name'],'type':'stream','count':r['count']}} for r in rows]
-    edges=[{'data':{'id':'root-'+r['id'],'source':'root','target':r['id']}} for r in rows]
+def graph(tid:str):
+    t=accessible(tid)
+    rows=query('''MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(s:Stream)
+        OPTIONAL MATCH (s)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem)
+        RETURN s.id AS id,s.name AS name,count(DISTINCT p) AS count ORDER BY s.name''',tid=tid)
+    nodes=[{'data':{'id':'root','label':t['name'],'type':'root'}}]
+    nodes.extend({'data':{'id':s['id'],'label':s['name'],'type':'stream','count':s['count']}} for s in rows)
+    edges=[{'data':{'id':'root-'+s['id'],'source':'root','target':s['id']}} for s in rows]
     return {'nodes':nodes,'edges':edges}
 
 @router.get('/{tid}/expand/{node_id:path}')
-def target_expand(tid:str,node_id:str):
-    if tid=='reference-longevity':
-        if node_id.startswith('S') and ':' not in node_id:
-            rows=query('MATCH (s:Stream {id:$id}) WHERE s.ownerId IS NULL MATCH (s)-[:CONTAINS]->(c:Category) RETURN c.id AS id,c.name AS label',id=node_id);kind='category'
-        elif ':' in node_id:
-            rows=query('MATCH (s:Stream)-[:CONTAINS]->(c:Category {id:$id}) WHERE s.ownerId IS NULL MATCH (c)-[:CONTAINS]->(p:Problem) WHERE p.ownerId IS NULL RETURN toString(p.id) AS id,p.description AS label LIMIT 300',id=node_id);kind='problem'
-        else:return {'nodes':[],'edges':[]}
-    else:
-        accessible(tid)
-        if node_id.startswith('S') and ':' not in node_id:
-            rows=query('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(s:Stream {id:$id})-[:CONTAINS]->(c:Category) RETURN c.id AS id,c.name AS label',tid=tid,id=node_id);kind='category'
-        elif ':' in node_id:
-            rows=query('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(c:Category {id:$id})-[:CONTAINS]->(p:Problem) RETURN toString(p.id) AS id,p.description AS label LIMIT 300',tid=tid,id=node_id);kind='problem'
-        else:return {'nodes':[],'edges':[]}
-    nodes=[{'data':{'id':('P'+str(r['id']) if kind=='problem' else r['id']),'label':r['label'],'type':kind}} for r in rows]
-    edges=[{'data':{'id':node_id+'-'+n['data']['id'],'source':node_id,'target':n['data']['id']}} for n in nodes]
+def expand(tid:str,node_id:str):
+    accessible(tid)
+    if node_id.startswith('S') and ':' not in node_id:
+        rows=query('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(s:Stream {id:$id})-[:CONTAINS]->(c:Category) RETURN c.id AS id,c.name AS label ORDER BY c.name',tid=tid,id=node_id)
+        kind='category'
+    elif ':' in node_id:
+        rows=query('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(c:Category {id:$id})-[:CONTAINS]->(p:Problem) RETURN toString(p.id) AS id,p.description AS label ORDER BY p.id LIMIT 500',tid=tid,id=node_id)
+        kind='problem'
+    elif node_id.startswith('P') and node_id[1:].isdigit():
+        rows=query('''MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid})
+             OPTIONAL MATCH (f:Finding {targetId:$tid})-[:ABOUT]->(p)
+             RETURN f.id AS id,f.claim AS label LIMIT 60''',tid=tid,pid=int(node_id[1:]))
+        kind='finding'
+    else:return {'nodes':[],'edges':[]}
+    nodes=[];edges=[]
+    for r in rows:
+        if not r['id']:continue
+        target=('P' if kind=='problem' else 'F' if kind=='finding' else '')+str(r['id'])
+        nodes.append({'data':{'id':target,'label':r['label'],'type':kind}})
+        edges.append({'data':{'id':node_id+'-'+target,'source':node_id,'target':target}})
     return {'nodes':nodes,'edges':edges}
+
+@router.get('/{tid}/hierarchy')
+def hierarchy(tid:str):
+    accessible(tid)
+    return query('''MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(s:Stream)
+        OPTIONAL MATCH (s)-[:CONTAINS]->(c:Category)
+        OPTIONAL MATCH (c)-[:CONTAINS]->(p:Problem)
+        RETURN s.id AS streamId,s.name AS stream,c.id AS categoryId,c.name AS category,count(p) AS count
+        ORDER BY stream,category''',tid=tid)
 
 @router.get('/{tid}/streams')
 def get_streams(tid:str):
@@ -171,80 +245,80 @@ def get_streams(tid:str):
     return query('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(s:Stream) RETURN s.id AS id,s.name AS name,s.description AS description ORDER BY s.name',tid=tid)
 
 @router.post('/{tid}/streams',status_code=201)
-def create_stream(tid:str,body:StreamInput):
-    accessible(tid,True);sid='S'+uuid.uuid4().hex[:16]
-    execute('MATCH (t:Target {id:$tid,ownerId:$owner}) CREATE (s:Stream {id:$sid,name:$name,description:$description,ownerId:$owner,targetId:$tid,createdAt:datetime()}) CREATE (t)-[:HAS_STREAM]->(s)',tid=tid,owner=me(),sid=sid,name=body.name.strip(),description=body.description.strip())
+def add_stream(tid:str,body:StreamInput):
+    accessible(tid,True);sid='S'+uuid.uuid4().hex
+    execute('MATCH (t:Target {id:$tid,ownerId:$owner}) CREATE (s:Stream {id:$sid,name:$name,description:$description,ownerId:$owner,targetId:$tid}) CREATE (t)-[:HAS_STREAM]->(s)',tid=tid,owner=me(),sid=sid,name=body.name.strip(),description=body.description.strip())
     return {'id':sid,'name':body.name}
 
 @router.patch('/{tid}/streams/{sid}')
-def update_stream(tid:str,sid:str,body:StreamInput):
+def change_stream(tid:str,sid:str,body:StreamInput):
     accessible(tid,True)
-    rows=query('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(s:Stream {id:$sid}) RETURN s.id AS id',tid=tid,sid=sid)
+    rows=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(s:Stream {id:$sid}) SET s.name=$name,s.description=$description RETURN s.id AS id',tid=tid,owner=me(),sid=sid,name=body.name.strip(),description=body.description.strip())
     if not rows:raise HTTPException(404,'Stream not found')
-    execute('MATCH (s:Stream {id:$sid,ownerId:$owner,targetId:$tid}) SET s.name=$name,s.description=$desc',sid=sid,owner=me(),tid=tid,name=body.name.strip(),desc=body.description.strip())
-    return {'ok':True}
+    return rows[0]
 
 @router.delete('/{tid}/streams/{sid}')
-def delete_stream(tid:str,sid:str):
+def remove_stream(tid:str,sid:str):
     accessible(tid,True)
-    execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(s:Stream {id:$sid}) OPTIONAL MATCH (s)-[:CONTAINS]->(c:Category) OPTIONAL MATCH (c)-[:CONTAINS]->(p:Problem) DETACH DELETE s,c,p',tid=tid,owner=me(),sid=sid)
+    # Remove only nodes owned by this target (including research linked to the problems).
+    rows=query('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(s:Stream {id:$sid}) RETURN s.id AS id',tid=tid,owner=me(),sid=sid)
+    if not rows:raise HTTPException(404,'Stream not found')
+    execute('MATCH (s:Stream {id:$sid,targetId:$tid}) OPTIONAL MATCH (s)-[:CONTAINS]->(c:Category) OPTIONAL MATCH (c)-[:CONTAINS]->(p:Problem) WITH s,collect(DISTINCT c) AS cs,collect(DISTINCT p) AS ps FOREACH(p IN ps | DETACH DELETE p) FOREACH(c IN cs | DETACH DELETE c) DETACH DELETE s',sid=sid,tid=tid)
     return {'ok':True}
 
 @router.post('/{tid}/streams/{sid}/categories',status_code=201)
 def add_category(tid:str,sid:str,body:CategoryInput):
-    accessible(tid,True);cid=sid+':'+uuid.uuid4().hex[:10]
-    result=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(s:Stream {id:$sid}) CREATE (c:Category {id:$cid,name:$name,ownerId:$owner,targetId:$tid}) CREATE (s)-[:CONTAINS]->(c) RETURN c.id AS id',tid=tid,owner=me(),sid=sid,cid=cid,name=body.name.strip())
-    if not result:raise HTTPException(404,'Stream not found')
-    return result[0]
+    accessible(tid,True); cid=sid+':'+uuid.uuid4().hex[:12]
+    rows=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(s:Stream {id:$sid}) CREATE (c:Category {id:$cid,name:$name,ownerId:$owner,targetId:$tid}) CREATE (s)-[:CONTAINS]->(c) RETURN c.id AS id',tid=tid,owner=me(),sid=sid,cid=cid,name=body.name.strip())
+    if not rows:raise HTTPException(404,'Stream not found')
+    return rows[0]
+
+@router.patch('/{tid}/categories/{cid}')
+def change_category(tid:str,cid:str,body:CategoryInput):
+    accessible(tid,True)
+    rows=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(c:Category {id:$cid}) SET c.name=$name RETURN c.id AS id',tid=tid,owner=me(),cid=cid,name=body.name.strip())
+    if not rows:raise HTTPException(404,'Category not found')
+    return rows[0]
+
+@router.delete('/{tid}/categories/{cid}')
+def remove_category(tid:str,cid:str):
+    accessible(tid,True)
+    rows=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(c:Category {id:$cid}) OPTIONAL MATCH (c)-[:CONTAINS]->(p:Problem) WITH c,collect(p) AS ps FOREACH (p IN ps | DETACH DELETE p) DETACH DELETE c RETURN true AS ok',tid=tid,owner=me(),cid=cid)
+    if not rows:raise HTTPException(404,'Category not found')
+    return {'ok':True}
 
 @router.post('/{tid}/categories/{cid}/problems',status_code=201)
 def add_problem(tid:str,cid:str,body:ProblemInput):
     accessible(tid,True)
-    rows=query('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(s:Stream)-[:CONTAINS]->(c:Category {id:$cid}) RETURN s.id AS sid,s.name AS stream,c.name AS category',tid=tid,owner=me(),cid=cid)
-    if not rows:raise HTTPException(404,'Category not found')
-    from .db import driver
-    import os
+    from difflib import SequenceMatcher
+    stmt=' '.join(body.statement.split())
+    existing=query('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem) RETURN p.description AS text',tid=tid)
+    if any(SequenceMatcher(None,stmt.lower(),x['text'].lower()).ratio()>.91 for x in existing):raise HTTPException(409,'Very similar problem already exists in this target')
     with driver().session(database=os.getenv('NEO4J_DATABASE','neo4j')) as session:
         def work(tx):
-            n=tx.run('MERGE (counter:IdCounter {name:"problem"}) ON CREATE SET counter.next=0 SET counter.next=counter.next+1 RETURN counter.next AS id').single()['id']
-            return tx.run('MATCH (c:Category {id:$cid,ownerId:$owner,targetId:$tid}) CREATE (p:Problem {id:$pid,description:$statement,ownerId:$owner,targetId:$tid,streamId:$sid,streamName:$stream,categoryName:$cat,origin:"manual",createdAt:datetime()}) CREATE (c)-[:CONTAINS]->(p) RETURN p.id AS id',cid=cid,owner=me(),tid=tid,pid=n,statement=body.statement.strip(),sid=rows[0]['sid'],stream=rows[0]['stream'],cat=rows[0]['category']).single()['id']
-        pid=session.execute_write(work)
-    return {'id':pid}
-
-@router.get('/{tid}/problems/{pid}')
-def get_problem(tid:str,pid:int):
-    if tid!='reference-longevity':accessible(tid)
-    if tid=='reference-longevity':
-        rows=query('MATCH (p:Problem {id:$id}) WHERE p.ownerId IS NULL RETURN p.id AS id,p.description AS description',id=pid)
-    else:
-        rows=query('MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$id}) RETURN p.id AS id,p.description AS description',tid=tid,id=pid)
-    if not rows:raise HTTPException(404,'Problem not found')
-    return rows[0]
-
-@router.patch('/{tid}/categories/{cid}')
-def update_category(tid:str,cid:str,body:CategoryInput):
-    accessible(tid,True)
-    result=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(c:Category {id:$cid}) SET c.name=$name RETURN c.id AS id',tid=tid,owner=me(),cid=cid,name=body.name.strip())
-    if not result:raise HTTPException(404,'Category not found')
-    return result[0]
-
-@router.delete('/{tid}/categories/{cid}')
-def delete_category(tid:str,cid:str):
-    accessible(tid,True)
-    result=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(c:Category {id:$cid}) OPTIONAL MATCH (c)-[:CONTAINS]->(p:Problem) WITH c,collect(p) AS problems FOREACH (p IN problems | DETACH DELETE p) DETACH DELETE c RETURN true AS deleted',tid=tid,owner=me(),cid=cid)
-    if not result:raise HTTPException(404,'Category not found')
-    return {'ok':True}
+            row=tx.run('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(s:Stream)-[:CONTAINS]->(c:Category {id:$cid}) RETURN s.id AS sid,s.name AS stream,c.name AS category',tid=tid,owner=me(),cid=cid).single()
+            if not row:raise ValueError('Category not found')
+            pid=tx.run('MERGE (counter:IdCounter {name:"problem"}) ON CREATE SET counter.next=0 SET counter.next=counter.next+1 RETURN counter.next AS id').single()['id']
+            tx.run('MATCH (c:Category {id:$cid}) CREATE (p:Problem {id:$pid,description:$statement,ownerId:$owner,targetId:$tid,streamId:$sid,streamName:$stream,categoryName:$cat,origin:"manual",reviewStatus:"needs_review",createdAt:datetime()}) CREATE (c)-[:CONTAINS]->(p)',cid=cid,pid=pid,statement=stmt,owner=me(),tid=tid,sid=row['sid'],stream=row['stream'],cat=row['category']).consume()
+            return pid
+        try: pid=session.execute_write(work)
+        except ValueError as exc:raise HTTPException(404,str(exc)) from exc
+    from . import jobs
+    jobs.queue_problem(me(),pid)
+    return {'id':pid,'statement':stmt}
 
 @router.patch('/{tid}/problems/{pid}')
-def update_problem(tid:str,pid:int,body:ProblemInput):
+def change_problem(tid:str,pid:int,body:ProblemInput):
     accessible(tid,True)
-    result=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid}) SET p.description=$description RETURN p.id AS id',tid=tid,owner=me(),pid=pid,description=body.statement.strip())
-    if not result:raise HTTPException(404,'Problem not found')
-    return result[0]
+    rows=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid}) SET p.description=$statement, p.embedding=null RETURN p.id AS id',tid=tid,owner=me(),pid=pid,statement=body.statement.strip())
+    if not rows:raise HTTPException(404,'Problem not found')
+    from . import jobs
+    jobs.queue_problem(me(),pid)
+    return rows[0]
 
 @router.delete('/{tid}/problems/{pid}')
-def delete_problem(tid:str,pid:int):
+def remove_problem(tid:str,pid:int):
     accessible(tid,True)
-    result=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid}) DETACH DELETE p RETURN true AS deleted',tid=tid,owner=me(),pid=pid)
-    if not result:raise HTTPException(404,'Problem not found')
+    rows=execute('MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid}) DETACH DELETE p RETURN true AS ok',tid=tid,owner=me(),pid=pid)
+    if not rows:raise HTTPException(404,'Problem not found')
     return {'ok':True}

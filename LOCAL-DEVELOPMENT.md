@@ -51,7 +51,8 @@ Test `http://127.0.0.1:8000/api/health`.
 
 ```bash
 cd apps/web
-npm ci
+npm install @amcharts/amcharts5
+npm install react-rnd
 npm run dev
 ```
 
@@ -59,7 +60,7 @@ Visit `http://localhost:5173`. Existing `vite.config.ts` forwards `/api` to `htt
 
 ## GitHub preparation
 
-The repository root is `problem-explorer/`, **not** the outer `explorer.pixelandpiece.com/` server folder. Copy `.gitignore` into `problem-explorer/` before `git init`. Keep `apps/web/package-lock.json` checked in for repeatable installs. The existing `docker-compose.yml` and Dockerfiles can remain as optional developer documentation; they do not affect production unless explicitly invoked.
+The repository root is `problem-explorer/`, **not** the outer `explorer.pixelandpiece.com/` server folder. Copy `.gitignore` into `problem-explorer/` before `git init`. The v0.8 archive omits the stale v0.7 lockfile; after your first `npm install`, keep the newly generated `apps/web/package-lock.json` checked in for repeatable `npm ci` installs. The existing `docker-compose.yml` and Dockerfiles can remain as optional developer documentation; they do not affect production unless explicitly invoked.
 
 ```bash
 git init

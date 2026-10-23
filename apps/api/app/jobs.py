@@ -12,6 +12,9 @@ thread=None
 def queue_problem(owner, problem_id):
     return _enqueue(owner,'problem',str(problem_id))
 
+def queue_target(owner, target_id):
+    return _enqueue(owner,'target',target_id)
+
 def queue_owner(owner):
     return _enqueue(owner,'owner','all')
 
@@ -37,7 +40,9 @@ def _execute(job):
     try:
         semantic.ensure_vector_index()
         if job['kind']=='shared':
-            rows=query('MATCH (p:Problem) WHERE p.ownerId IS NULL AND p.embedding IS NULL RETURN p.id AS id,p.description AS description LIMIT 20')
+            rows=query("MATCH (p:Problem) WHERE p.targetId='reference-longevity' AND p.embedding IS NULL RETURN p.id AS id,p.description AS description LIMIT 20")
+        elif job['kind']=='target':
+            rows=query('MATCH (p:Problem {targetId:$tid,ownerId:$owner}) WHERE p.embedding IS NULL RETURN p.id AS id,p.description AS description LIMIT 20',tid=job['target'],owner=owner)
         elif job['kind']=='problem':
             rows=query('MATCH (p:Problem {id:$pid}) WHERE p.ownerId=$owner AND p.embedding IS NULL RETURN p.id AS id,p.description AS description',pid=int(job['target']),owner=owner)
         else:
@@ -49,8 +54,8 @@ def _execute(job):
             raise RuntimeError('Daily AI allowance reached; resume indexing tomorrow or increase allowance')
         vectors=semantic.embed([x['description'] for x in rows])
         from .db import execute
-        execute('UNWIND $rows AS row MATCH (p:Problem {id:row.id}) WHERE ($shared AND p.ownerId IS NULL) OR p.ownerId=$owner CALL db.create.setNodeVectorProperty(p,"embedding",row.vector) RETURN count(p) AS n',rows=[{'id':r['id'],'vector':v} for r,v in zip(rows,vectors)],owner=owner,shared=owner=='__system__')
-        return len(rows),job['kind'] in ('owner','shared') and len(rows)==20
+        execute("UNWIND $rows AS row MATCH (p:Problem {id:row.id}) WHERE ($shared AND p.targetId='reference-longevity') OR p.ownerId=$owner CALL db.create.setNodeVectorProperty(p,'embedding',row.vector) RETURN count(p) AS n",rows=[{'id':r['id'],'vector':v} for r,v in zip(rows,vectors)],owner=owner,shared=owner=='__system__')
+        return len(rows),job['kind'] in ('owner','shared','target') and len(rows)==20
     finally:current_user.reset(token)
 
 def loop():

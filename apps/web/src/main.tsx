@@ -1,145 +1,24 @@
 import React, {useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import cytoscape, {Core} from 'cytoscape';
 import {Radar,RadarChart,PolarGrid,PolarAngleAxis,ResponsiveContainer,Tooltip} from 'recharts';
-import {Network,Search,BookOpen,Lightbulb,BarChart3,ChevronRight,RefreshCw,ExternalLink,Plus,ArrowLeft,FlaskConical,Sparkles,FolderPlus,Trash2,Share2,Lock,Settings2} from 'lucide-react';
+import {Network,Search,BookOpen,Lightbulb,BarChart3,ChevronRight,RefreshCw,ExternalLink,Plus,ArrowLeft,FlaskConical,Sparkles,FolderPlus,Trash2,Share2,Lock,Settings2,PanelsTopLeft,Sun,Moon,RotateCcw} from 'lucide-react';
+import NetworkCanvas from './NetworkCanvas';
+import FloatingPanel, {viewportLayouts, type PanelId, type PanelLayout, type PanelLayouts} from './FloatingPanel';
 import './style.css';
 
-type Problem={id:number,description:string,streamId?:string,stream?:string,category:string,findings?:Finding[],researchRuns?:any[],solutions?:any[]};
+type Problem={id:number,description:string,streamId?:string,stream?:string,category:string,categoryId?:string,findings?:Finding[],researchRuns?:any[],solutions?:any[]};
 type Finding={id:string,claim:string,title:string,url:string,confidence:string,limitations:string,reviewStatus:string,statistic:string};
 type ConceptDraft={id:string,name:string,description:string,status:string,solutionId?:string|null,details:any};
 type Sol={id:string,name:string,description:string,matches?:Match[],evaluations?:{id:string,payload:string}[]};
 type Match={problemId:number,description:string,relationship:string,relevance:number,rationale:string,confidence:string};
 type Factor={factor:string,score:number|null,confidence:string,rationale:string,evidence_urls:string[],unanswered_questions:string[]};
 type Eval={summary:string,factors:Factor[],key_assumptions:string[],risks:string[],next_research:string[]};
-type Elements={nodes:any[],edges:any[]};
 async function api<T=any>(url:string,init?:RequestInit):Promise<T>{
  const res=await fetch('/api'+url,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...init});
  if(!res.ok){let error:any;try{error=await res.json()}catch{error={detail:res.statusText}};throw new Error(typeof error.detail==='string'?error.detail:(error.detail?.message||JSON.stringify(error.detail||res.statusText)))}
  return res.json();
 }
 const post=<T=any,>(url:string,body?:unknown):Promise<T>=>api<T>(url,{method:'POST',body:JSON.stringify(body??{})});
-const graphLabel=(value:string,type:string)=>{
- const text=value.trim().replace(/\s+/g,' ');
- if(type!=='problem'&&type!=='finding')return text;
- // Two lines on the canvas; the full original statement remains available on hover.
- const maxTotal=82, lineWidth=41;
- const clipped=text.length>maxTotal?text.slice(0,maxTotal-1).trimEnd()+'…':text;
- if(clipped.length<=lineWidth)return clipped;
- const split=clipped.lastIndexOf(' ',lineWidth);
- const at=split>=24?split:lineWidth;
- return clipped.slice(0,at).trimEnd()+'\n'+clipped.slice(at).trimStart();
-};
-const colors:Record<string,string>={root:'#243d4c',stream:'#34697c',category:'#b18b59',problem:'#467b70',finding:'#946f96'};
-
-function Graph({onProblem,targetId}:{onProblem:(id:number)=>void,targetId?:string}){
- const ref=useRef<HTMLDivElement>(null);
- const cy=useRef<Core|null>(null);
- const [hint,setHint]=useState('Click a stream to expand its categories. Click again to collapse.');
- const [expanded,setExpanded]=useState<Set<string>>(new Set());
- const expandedRef=useRef(new Set<string>());
- const focusRef=useRef<string|null>(null);
- const compactChildren=(core:Core,id:string)=>{
-   const parent=core.getElementById(id);
-   if(!parent.length)return;
-   const children=parent.outgoers('node');
-   const count=children.length;
-   if(!count)return;
-   // Place the immediate expansion around its parent, independently of other
-   // expanded branches. Keep enough arc length for typical two-line labels.
-   const radius=Math.max(160,Math.min(650,(count*155)/(2*Math.PI)));
-   const center=parent.position();
-   core.batch(()=>children.forEach((child:any,i:number)=>{
-     const angle=-Math.PI/2+2*Math.PI*i/count;
-     child.position({x:center.x+radius*Math.cos(angle),y:center.y+radius*Math.sin(angle)});
-   }));
- };
- const focusBranch=(core:Core,id:string,duration=480)=>{
-   const parent=core.getElementById(id);
-   if(!parent.length)return;
-   // Fit the expanded branch, not the clicked parent alone. Cytoscape accounts for
-   // both the nodes and their labels when calculating the viewport bounding box.
-   // Focus on the immediate children of the selected node, not every descendant
-   // of the expanded branch. Deep descendants can make the view unreadably small.
-   const branch=parent.union(parent.outgoers('node'));
-   // Dim ancestors and unrelated branches, while leaving the active branch readable.
-   core.elements().removeClass('graph-muted');
-   core.nodes().not(branch).addClass('graph-muted');
-   core.edges().not(branch.connectedEdges()).addClass('graph-muted');
-   const padding=Math.max(24,Math.min(52,Math.min(core.width(),core.height())*0.055));
-   core.animate({fit:{eles:branch,padding},duration} as any);
- };
- const focusSingleNode=(core:Core,id:string,duration=320)=>{
-   const node=core.getElementById(id);
-   if(!node.length)return;
-   core.animate({center:{eles:node},duration} as any);
- };
- const showAll=(core:Core,padding=55)=>{
-   core.elements().removeClass('graph-muted');
-   core.animate({fit:{eles:core.elements(),padding},duration:400} as any);
- };
- const layoutGraph=(core:Core,focusId?:string)=>{
-   // Compact circular rings reduce distance between siblings so labels stay legible.
-   // Focusing only on immediate children avoids zooming out for deep descendants.
-   const layout=core.layout({name:'breadthfirst',directed:true,roots:'#root',spacingFactor:1.12,
-    nodeDimensionsIncludeLabels:true,padding:45,fit:false,animate:true,animationDuration:430,
-    circle:true} as any);
-   layout.one('layoutstop',()=>{
-     if(core.destroyed())return;
-     const id=focusId||focusRef.current;
-     if(id && core.getElementById(id).length){
-       compactChildren(core,id);
-       focusBranch(core,id);
-     }else showAll(core,75);
-   });
-   layout.run();
- };
- useEffect(()=>{
-   if(!ref.current)return;
-   const core=cytoscape({container:ref.current,elements:[],style:[
-    {selector:'node',style:{'background-color':(e:any)=>colors[e.data('type')]||'#888',
-      'label':(e:any)=>graphLabel(String(e.data('label')||''),String(e.data('type'))),
-      'font-size':'11px','color':'#dce8e8','text-outline-width':2,'text-outline-color':'#101d25',
-      'text-valign':'bottom','text-margin-y':10,'text-wrap':'wrap','text-max-width':'270px',
-      'text-justification':'center',
-      'width':(e:any)=>e.data('type')==='root'?56:e.data('type')==='stream'?46:22,
-      'height':(e:any)=>e.data('type')==='root'?56:e.data('type')==='stream'?46:22,
-      'border-width':1.6,'border-color':'#c6d7d1'}},
-    {selector:'edge',style:{'line-color':'#42626b','width':1.3,'opacity':0.7,'curve-style':'bezier'}},
-    {selector:'node:selected',style:{'border-color':'#f0c779','border-width':4}},
-    {selector:'.graph-muted',style:{'opacity':0.20}}
-   ],layout:{name:'preset'},wheelSensitivity:0.18});
-   cy.current=core;
-   (targetId==='__empty__'?Promise.resolve({nodes:[{data:{id:'root',label:'Create or select a target',type:'root'}}],edges:[]}):api<Elements>(targetId?'/targets/'+encodeURIComponent(targetId)+'/graph':'/graph/root')).then(data=>{core.add([...data.nodes,...data.edges]);layoutGraph(core)}).catch(e=>setHint(e.message));
-   core.on('mouseover','node',evt=>{
-     const full=String(evt.target.data('label')||'');
-     if(evt.target.data('type')==='problem')setHint(full+' · Click to open full record');
-   });
-   core.on('tap','node',async evt=>{
-     const node=evt.target;const id=String(node.id());const type=node.data('type');
-     if(type==='problem'){focusSingleNode(core,id,300);onProblem(Number(id.slice(1)));return}
-     if(type==='finding'){focusSingleNode(core,id);return;}
-     if(type==='root'){focusRef.current=null;showAll(core);return}
-     // Wait for the new layout before zooming to the revealed branch.
-
-     if(expandedRef.current.has(id)){
-       const children=node.outgoers('node');children.forEach((child:any)=>{child.successors().remove();child.remove()});
-       expandedRef.current.delete(id);setExpanded(new Set(expandedRef.current));
-       focusRef.current=id;layoutGraph(core,id);return;
-     }
-     try{
-       const data=await api<Elements>(targetId?'/targets/'+encodeURIComponent(targetId)+'/expand/'+encodeURIComponent(id):'/graph/expand/'+encodeURIComponent(id));
-       const elements=[...data.nodes,...data.edges].filter((e:any)=>!(e.data?.id && core.getElementById(e.data.id).length));
-       core.add(elements);
-       expandedRef.current.add(id);setExpanded(new Set(expandedRef.current));
-       focusRef.current=id;layoutGraph(core,id);
-       setHint(`${data.nodes.length} connected nodes · hover over a problem to read its full statement`);
-     }catch(e:any){setHint(e.message)}
-   });
-   return()=>{core.destroy();cy.current=null};
- },[targetId]);
- return <section className="graph-panel"><div className="pane-title"><span><Network size={17}/> Knowledge graph</span><div className="actions"><button className="ghost small" onClick={()=>cy.current&&showAll(cy.current,45)}>Fit graph</button><button className="ghost small" onClick={()=>{cy.current?.nodes().unselect();if(cy.current)showAll(cy.current,55)}}>Reset zoom</button></div></div><div className="graph-canvas" ref={ref}/><div className="graph-footer">{hint} <span>{expanded.size} expanded</span></div></section>;
-}
 
 type Account={id:string,email:string,name:string,role:string};
 declare global { interface Window { google?:{accounts:{id:{initialize:(opts:any)=>void,renderButton:(el:HTMLElement,opts:any)=>void}}} } }
@@ -198,147 +77,252 @@ function AdminConsole(){
  <h3>Recent AI usage</h3><div className="admin-table"><table><thead><tr><th>User ID</th><th>UTC date</th><th>Requests</th></tr></thead><tbody>{data.usage?.map((r:any)=><tr key={r.user_id+r.day}><td>{r.user_id.slice(0,8)}…</td><td>{r.day}</td><td>{r.requests}</td></tr>)}</tbody></table></div></>}
  </section>;
 }
-function WorkspaceCreator({onCreated}:{onCreated:()=>void}){
- const [name,setName]=useState('');const [description,setDescription]=useState('');const [streamId,setStreamId]=useState('');const [detail,setDetail]=useState('standard');
- const [preview,setPreview]=useState<any>(null);const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');const [error,setError]=useState('');
- const run=async(action:()=>Promise<void>)=>{setBusy(true);setError('');try{await action()}catch(e:any){setError(e.message)}finally{setBusy(false)}};
- return <section className="content"><div className="panel"><div className="pane-title"><span><Plus size={17}/> New research stream</span><span className="mini">Private to your account</span></div>
- <p className="muted">Choose any research subject. Preview an AI-proposed structure, edit it, and decide what to save. Seeded problems are unverified hypotheses requiring subsequent research.</p>
- {error&&<div className="alert bad">{error}</div>}{message&&<div className="alert good">{message}</div>}
- {!streamId?<><label className="field">Stream name<input maxLength={100} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Urban heat resilience"/></label><label className="field">Research scope<textarea maxLength={1000} rows={3} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Who, what context, and which boundaries should this research cover?"/></label><button className="primary" disabled={busy||name.trim().length<3} onClick={()=>run(async()=>{const r=await post('/streams',{name,description});setStreamId(r.id);onCreated()})}>Create private stream</button></>:<><p><strong>{name}</strong> · New private stream created</p><label className="field">Initial level of detail<select value={detail} onChange={e=>setDetail(e.target.value)}><option value="outline">Outline · 3 categories, no problems</option><option value="standard">Standard · 5 categories, 3 problems each</option><option value="detailed">Detailed · 7 categories, 6 problems each</option></select></label><button disabled={busy} className="primary" onClick={()=>run(async()=>{setPreview(await post(`/streams/${streamId}/seed`,{detail}))})}>{busy?'Generating…':'Generate editable draft taxonomy'}</button>
- {preview&&<><h3>Review generated structure</h3><p className="muted">Edit any category or problem before saving. Nothing below is verified evidence.</p>{preview.categories.map((c:any,i:number)=><div key={i} className="finding"><label className="field">Category<input value={c.name} onChange={e=>setPreview((v:any)=>({...v,categories:v.categories.map((x:any,j:number)=>j===i?{...x,name:e.target.value}:x)}))}/></label>{c.problems.map((p:string,j:number)=><label className="field" key={j}>Problem hypothesis<textarea rows={2} value={p} onChange={e=>setPreview((v:any)=>({...v,categories:v.categories.map((x:any,k:number)=>k===i?{...x,problems:x.problems.map((t:string,n:number)=>n===j?e.target.value:t)}:x)}))}/></label>)}</div>)}<button className="primary" disabled={busy} onClick={()=>run(async()=>{const r=await post(`/streams/${streamId}/taxonomy`,{categories:preview.categories});setPreview(null);setMessage(`Saved ${r.categories.length} categories and ${r.categories.reduce((a:number,c:any)=>a+c.problems.length,0)} draft problems. Embeddings queued in the background.`);onCreated()})}>Save reviewed structure</button></>}</>}
- </div></section>;
+
+// v0.7: one target-scoped workspace, shared by graph, discovery, evidence and concepts.
+type Target={id:string,name:string,description:string,ownerId:string,shared:boolean,reference?:boolean};
+type Directory={mine:Target[],shared:Target[]};
+type NavTab='graph'|'directory'|'problems'|'research'|'discovery'|'concepts'|'matching'|'evaluation'|'manage'|'admin';
+type Scope={streamId:string,stream:string,categoryId:string|null,category:string|null,count:number};
+type SeedCategory={name:string,problems:string[]};
+type StreamSuggestion={name:string,description:string,selected:boolean};
+type Draft={id:string,name:string,description:string,status:string,solutionId?:string,details:any};
+const targetUrl=(id:string,rest='')=>'/targets/'+encodeURIComponent(id)+rest;
+const patch=<T=any,>(url:string,body:unknown):Promise<T>=>api<T>(url,{method:'PATCH',body:JSON.stringify(body)});
+const del=<T=any,>(url:string):Promise<T>=>api<T>(url,{method:'DELETE'});
+
+function Root(){
+ const [account,setAccount]=useState<Account|null>(null);
+ const [loading,setLoading]=useState(true);
+ useEffect(()=>{api<{user:Account|null}>('/auth/me').then(r=>setAccount(r.user)).finally(()=>setLoading(false))},[]);
+ if(loading)return <div className="auth-screen"><div className="auth-panel">Loading your workspace…</div></div>;
+ if(!account)return <AuthGate onAuthenticated={setAccount}/>;
+ return <IntegratedWorkspace account={account} onLogout={async()=>{await post('/auth/logout');setAccount(null)}}/>;
 }
 
-// v0.6.1: sidebar-first experience with an optional target wizard overlay.
-type Target={id:string,name:string,description:string,shared:boolean,ownerId?:string,readOnly?:boolean};
-type SuggestedStream={name:string,description:string,selected:boolean};
-function TargetHome(){
- const [directory,setDirectory]=useState<{mine:Target[],shared:Target[],reference:Target}|null>(null);
+function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Promise<void>}){
+ const [directory,setDirectory]=useState<Directory>({mine:[],shared:[]});
  const [current,setCurrent]=useState<Target|null>(null);
- const [view,setView]=useState<'graph'|'directory'>('graph');
- const [wizard,setWizard]=useState(false);
- const [form,setForm]=useState({name:'',description:'',shared:false,detail:'standard'});
- const [suggestions,setSuggestions]=useState<SuggestedStream[]>([]);
- const [manualStream,setManualStream]=useState('');
- const [busy,setBusy]=useState(false);
- const [streams,setStreams]=useState<any[]>([]);
- const [selectedStream,setSelectedStream]=useState('');
- const [categories,setCategories]=useState<any[]>([]);
- const [selectedCategory,setSelectedCategory]=useState('');
- const [newCategory,setNewCategory]=useState('');const [newProblem,setNewProblem]=useState('');
- const [newStream,setNewStream]=useState('');const [newDescription,setNewDescription]=useState('');
- const [selectedProblem,setSelectedProblem]=useState<any>(null);
- const [error,setError]=useState('');const [notice,setNotice]=useState('');const [version,setVersion]=useState(0);
- const run=async(fn:()=>Promise<void>)=>{setBusy(true);setError('');try{await fn()}catch(e:any){setError(e.message)}finally{setBusy(false)}};
- const refresh=async()=>{const d=await api<any>('/targets');setDirectory(d);return d};
- const open=async(t:Target)=>{
-   setCurrent(t);setView('graph');setWizard(false);setSelectedProblem(null);setSelectedStream('');setSelectedCategory('');setCategories([]);
-   setStreams(t.id==='reference-longevity'?[]:await api<any[]>('/targets/'+t.id+'/streams'));
-   setVersion(v=>v+1);
- };
- useEffect(()=>{refresh().then(d=>{if(!d.mine.length)setWizard(true)}).catch((e:any)=>setError(e.message))},[]);
- const refreshGraph=async()=>{if(current&&current.id!=='reference-longevity')setStreams(await api('/targets/'+current.id+'/streams'));setVersion(v=>v+1)};
- const fetchCategories=async(sid:string)=>{if(!current)return;const r=await api<Elements>('/targets/'+current.id+'/expand/'+encodeURIComponent(sid));setCategories(r.nodes.map(n=>n.data));setSelectedStream(sid);setSelectedCategory('')};
- const saveWizard=()=>run(async()=>{
-   const streams=suggestions.filter(x=>x.selected&&x.name.trim().length>=3).map(({name,description})=>({name,description}));
-   const created=await post<Target>('/targets/with-streams',{...form,streams});
-   await refresh();await open(created);setNotice(`Target created with ${streams.length} research streams.`);setSuggestions([]);
+ const [tab,setTab]=useState<NavTab>('graph');
+ const [theme,setTheme]=useState<'dark'|'light'>(()=>{
+   const saved=window.localStorage.getItem('problem-explorer-theme');
+   if(saved==='light'||saved==='dark')return saved;
+   return window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
  });
- const copyCurrent=()=>{if(!current)return;run(async()=>{
-   const copied=await post<Target & {problemCount:number,streamCount:number}>('/targets/'+current.id+'/copy');
-   await refresh();await open(copied);setNotice(`Private editable copy created: ${copied.streamCount} streams and ${copied.problemCount} problems.`);
- })};
- const owned=Boolean(current?.ownerId && directory?.mine.some(t=>t.id===current.id));
- return <div className="app target-app">
-  <aside className="sidebar target-sidebar"><div className="brand"><span className="brandmark"><Network size={19}/></span><div><strong>PROBLEM <b>EXPLORER</b></strong><small>Research workspace</small></div></div>
-   <div className="side-heading">WORKSPACE</div>
-   <button className={'nav '+(view==='graph'?'on':'')} onClick={()=>setView('graph')}><Network size={16}/> Knowledge graph</button>
-   <button className={'nav '+(view==='directory'?'on':'')} onClick={()=>setView('directory')}><BookOpen size={16}/> Target directory</button>
-   <button className="nav" onClick={()=>{setWizard(true);setSuggestions([])}}><Plus size={16}/> Create target</button>
-   <div className="side-heading">MY TARGETS</div>
-   {directory?.mine.map(t=><button className={'stream '+(current?.id===t.id?'on':'')} key={t.id} onClick={()=>run(()=>open(t))}>{t.name}<ChevronRight size={13}/></button>)}
-   {!directory?.mine.length&&<small className="target-sidebar-empty">No targets yet</small>}
-   <div className="side-heading">SHARED RESEARCH</div>
-   <button className={'stream '+(current?.id==='reference-longevity'?'on':'')} onClick={()=>directory?.reference&&run(()=>open(directory.reference))}>Longevity library <ChevronRight size={13}/></button>
-   {directory?.shared.map(t=><button className={'stream '+(current?.id===t.id?'on':'')} key={t.id} onClick={()=>run(()=>open(t))}>{t.name}<ChevronRight size={13}/></button>)}
-   <div className="side-bottom">Private workspaces · Shared targets are read-only until copied.</div>
+ useEffect(()=>{
+   if(window.localStorage.getItem('problem-explorer-theme'))return;
+   const media=window.matchMedia('(prefers-color-scheme: light)');
+   const update=()=>setTheme(media.matches?'light':'dark');
+   media.addEventListener('change',update);
+   return()=>media.removeEventListener('change',update);
+ },[]);
+ const [panels,setPanels]=useState<PanelLayouts>(viewportLayouts);
+ const highestZ=useRef(20);
+ const [problemModalOpen,setProblemModalOpen]=useState(false);
+ useEffect(()=>{
+   if(!problemModalOpen)return;
+   const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setProblemModalOpen(false)};
+   document.addEventListener('keydown',close);
+   return()=>document.removeEventListener('keydown',close);
+ },[problemModalOpen]);
+ const updatePanel=(id:PanelId,patch:Partial<PanelLayout>)=>setPanels(previous=>({...previous,[id]:{...previous[id],...patch}}));
+ const focusPanel=(id:PanelId)=>setPanels(previous=>({...previous,[id]:{...previous[id],z:++highestZ.current}}));
+ const openPanel=(id:PanelId)=>setPanels(previous=>{
+   const panel=previous[id];
+   const width=Math.min(panel.width,Math.max(240,window.innerWidth-24));
+   return {...previous,[id]:{...panel,isOpen:true,isCollapsed:false,z:++highestZ.current,
+     width,x:Math.max(8,Math.min(panel.x,window.innerWidth-width-12)),
+     y:Math.max(64,Math.min(panel.y,window.innerHeight-52))}};
+ });
+ const switchTheme=()=>setTheme(value=>{const next=value==='dark'?'light':'dark';window.localStorage.setItem('problem-explorer-theme',next);return next});
+
+ const [wizard,setWizard]=useState(false);
+ const [busy,setBusy]=useState(''); const [error,setError]=useState('');const [notice,setNotice]=useState('');
+ const [version,setVersion]=useState(0);
+ const [stats,setStats]=useState<any>({streams:0,categories:0,problems:0,solutions:0});
+ const [streams,setStreams]=useState<{id:string,name:string,description:string}[]>([]);
+ const [hierarchy,setHierarchy]=useState<Scope[]>([]);
+ const [problems,setProblems]=useState<Problem[]>([]);
+ const [sols,setSols]=useState<Sol[]>([]);
+ const [discoveries,setDiscoveries]=useState<any[]>([]);
+ const [selected,setSelected]=useState<Problem|null>(null);
+ const [drafts,setDrafts]=useState<Draft[]>([]); const [draftEdits,setDraftEdits]=useState<Record<string,{name:string,description:string}>>({});
+ const [solution,setSolution]=useState<Sol|null>(null);
+ const [evaluation,setEvaluation]=useState<Eval|null>(null);
+ const [searchText,setSearchText]=useState('');const [searchMode,setSearchMode]=useState('exact');const [searchResults,setSearchResults]=useState<any[]|null>(null);
+ const [focus,setFocus]=useState('prevalence, affected populations, existing responses, limitations and gaps');
+ const [designDirection,setDesignDirection]=useState(''); const [conceptCount,setConceptCount]=useState(4);
+ const [conceptName,setConceptName]=useState('');const [conceptDescription,setConceptDescription]=useState('');
+ const [discoveryTopic,setDiscoveryTopic]=useState(''); const [discoveryEdits,setDiscoveryEdits]=useState<Record<string,string>>({});
+ const [selectedStream,setSelectedStream]=useState('');const [selectedCategory,setSelectedCategory]=useState('');
+ const [newStream,setNewStream]=useState('');const [newCategory,setNewCategory]=useState('');const [newProblem,setNewProblem]=useState('');
+ const [seedDetail,setSeedDetail]=useState('standard');const [seedPreview,setSeedPreview]=useState<SeedCategory[]|null>(null);
+ const [wizardName,setWizardName]=useState('');const [wizardScope,setWizardScope]=useState('');const [wizardDetail,setWizardDetail]=useState('standard');const [wizardShared,setWizardShared]=useState(false);
+ const [suggestions,setSuggestions]=useState<StreamSuggestion[]>([]);const [manualSuggestion,setManualSuggestion]=useState('');
+ const [editTarget,setEditTarget]=useState(false);const [editingName,setEditingName]=useState('');const [editingDesc,setEditingDesc]=useState('');const [editingShared,setEditingShared]=useState(false);
+ const readOnly=!!current && current.ownerId!==account.id;
+ const path=current?targetUrl(current.id):'';
+ const run=async(label:string,fn:()=>Promise<void>)=>{
+   setBusy(label);setError('');setNotice('');
+   try{await fn()}catch(e:any){setError(e.message||'Unexpected error')}finally{setBusy('')}
+ };
+ const reloadDirectory=async()=>{const d=await api<Directory>('/targets');setDirectory(d);return d};
+ const loadData=async(tid:string)=>{
+   const p=targetUrl(tid);
+   const [s,h,pr,sol,disc,metrics]=await Promise.all([
+     api<typeof streams>(p+'/streams'),api<Scope[]>(p+'/hierarchy'),api<Problem[]>(p+'/problems?limit=1000'),
+     api<Sol[]>(p+'/solutions'),api<any[]>(p+'/discoveries'),api<any>(p+'/stats')]);
+   setStreams(s);setHierarchy(h);setProblems(pr);setSols(sol);setDiscoveries(disc);setStats(metrics);
+   setSelectedStream(v=>s.some(x=>x.id===v)?v:s[0]?.id||'');
+   setSelectedCategory(v=>h.some(x=>x.categoryId===v)?v:h.find(x=>x.categoryId)?.categoryId||'');
+ };
+ const selectTarget=async(t:Target)=>{
+   setCurrent(t);setSelected(null);setProblemModalOpen(false);setDrafts([]);setSolution(null);setEvaluation(null);setSearchResults(null);setSeedPreview(null);changeTab('graph');setWizard(false);
+   await loadData(t.id);setVersion(v=>v+1);
+ };
+ const refreshTarget=async()=>{if(current){await loadData(current.id);setVersion(v=>v+1)}};
+ useEffect(()=>{
+   reloadDirectory().then(d=>{
+     if(d.mine.length)selectTarget(d.mine[0]).catch((e:any)=>setError(e.message));
+     else setWizard(true);
+   }).catch((e:any)=>setError(e.message));
+ },[]);
+ const onProblemNodeSelect=(recordId:number)=>run('problem',async()=>{
+   await loadProblem(recordId,false);
+   setProblemModalOpen(true);
+ });
+ const loadProblem=async(id:number,go=true)=>{
+   if(!current)return;
+   const [p,d]=await Promise.all([api<Problem>(path+'/problems/'+id),api<Draft[]>(path+'/problems/'+id+'/concepts')]);
+   setSelected(p);setDrafts(d);if(go)changeTab('research');
+ };
+ const loadSolution=async(id:string,go=true)=>{
+   if(!current)return;
+   const s=await api<Sol>(path+'/solutions/'+id);
+   setSolution(s);
+   try{setEvaluation(s.evaluations?.[0]?.payload?JSON.parse(s.evaluations[0].payload):null)}catch{setEvaluation(null)}
+   if(go)changeTab('matching');
+ };
+ const newTarget=()=>{setWizardName('');setWizardScope('');setWizardDetail('standard');setWizardShared(false);setSuggestions([]);setWizard(true)};
+ const createTarget=()=>run('saveTarget',async()=>{
+   const selectedStreams=suggestions.filter(x=>x.selected&&x.name.trim().length>=3).map(x=>({name:x.name.trim(),description:x.description.trim()}));
+   if(!selectedStreams.length)throw new Error('Select or add at least one research stream to populate the new graph.');
+   const created=await post<Target>('/targets/with-streams',{name:wizardName,description:wizardScope,shared:wizardShared,streams:selectedStreams});
+   await reloadDirectory();await selectTarget(created);setNotice('Target created with '+selectedStreams.length+' initial streams.');
+ });
+ const copyTarget=(t:Target)=>run('copyTarget',async()=>{
+   const copy=await post<Target & {streamCount:number,problemCount:number}>(targetUrl(t.id)+'/copy');
+   await reloadDirectory();await selectTarget(copy);setNotice('Editable copy created: '+copy.streamCount+' streams and '+copy.problemCount+' problems.');
+ });
+ const changeTab=(value:NavTab)=>{setTab(value);openPanel(value==='graph'?'overview':value);setError('');setNotice('')};
+ const nav:{id:NavTab,label:string,icon:React.ReactNode}[]=[
+   {id:'graph',label:'Explore graph',icon:<Network size={16}/>},
+   {id:'problems',label:'Problem library',icon:<Search size={16}/>},
+   {id:'research',label:'Research & findings',icon:<BookOpen size={16}/>},
+   {id:'discovery',label:'Problem discovery',icon:<Sparkles size={16}/>},
+   {id:'concepts',label:'Concepts',icon:<Lightbulb size={16}/>},
+   {id:'matching',label:'Problem matching',icon:<Network size={16}/>},
+   {id:'evaluation',label:'Concept analysis',icon:<BarChart3 size={16}/>},
+   {id:'manage',label:'Manage hierarchy',icon:<Settings2 size={16}/>},
+   {id:'directory',label:'Shared target directory',icon:<BookOpen size={16}/>}
+ ];
+ const choose=(id:string)=>run('switch',async()=>{
+   const t=[...directory.mine,...directory.shared].find(x=>x.id===id);
+   if(t)await selectTarget(t);
+ });
+ const saveSettings=()=>run('editTarget',async()=>{
+   if(!current)return;
+   await patch(path,{name:editingName,description:editingDesc,shared:editingShared});
+   await reloadDirectory();const updated={...current,name:editingName,description:editingDesc,shared:editingShared};setCurrent(updated);
+   setEditTarget(false);setNotice('Target details saved.');setVersion(v=>v+1);
+ });
+ const startEdit=()=>{if(!current)return;setEditingName(current.name);setEditingDesc(current.description);setEditingShared(current.shared);setEditTarget(true)};
+ const renderProblemList=(items:Problem[])=>items.length?<div className="problem-list-v07">{items.map(p=><button className="problem-item" key={p.id} onClick={()=>run('problem',()=>loadProblem(p.id))}><span className="num">#{p.id}</span><span>{p.description}<small>{p.stream} · {p.category}</small></span><ChevronRight size={14}/></button>)}</div>:<p className="empty">No problems in this target yet. Generate a taxonomy, or add problems under Manage hierarchy.</p>;
+
+ return <div className={`app workspace-v08 theme-${theme}`}>
+  <NetworkCanvas targetId={current?.id||null} refreshKey={version} theme={theme} onProblemNodeSelect={onProblemNodeSelect}/>
+  <div className="workspace-toolbar">
+    <div className="toolbar-brand"><Network size={19}/><strong>PROBLEM EXPLORER</strong><span className="toolbar-separator"/>
+      <span className="toolbar-target" title={current?.description||'No target selected'}>{current?.name||'No active target'}</span>
+      {readOnly&&<span className="toolbar-badge">READ ONLY</span>}</div>
+    <div className="toolbar-actions">
+      <button type="button" onClick={()=>openPanel('navigation')} title="Open navigation"><PanelsTopLeft size={16}/> <span>Workspaces</span></button>
+      <button type="button" onClick={()=>openPanel('overview')} title="Open target overview"><BookOpen size={16}/> <span>Overview</span></button>
+      <button type="button" onClick={()=>setPanels(viewportLayouts())} title="Restore panel positions"><RotateCcw size={15}/></button>
+      <button type="button" onClick={switchTheme} title={theme==='dark'?'Switch to light mode':'Switch to dark mode'}
+        aria-label={theme==='dark'?'Switch to light mode':'Switch to dark mode'}>{theme==='dark'?<Sun size={17}/>:<Moon size={17}/>}</button>
+    </div>
+  </div>
+  {(error||notice)&&<div className={'workspace-toast '+(error?'is-error':'')} role={error?'alert':'status'}>
+    <span>{error||notice}</span><button type="button" onClick={()=>{setError('');setNotice('')}} aria-label="Dismiss notification">×</button>
+  </div>}
+  <div className="windows-layer">
+   <FloatingPanel id="navigation" title="Navigation" state={panels.navigation} update={updatePanel} focus={focusPanel}>
+  <aside className="sidebar target-sidebar-v07">
+   <div className="brand"><div className="brandmark"><Network size={21}/></div><div><strong>PROBLEM <b>EXPLORER</b></strong><small>RESEARCH WORKSPACE · v0.8</small></div></div>
+   <div className="side-heading">ACTIVE TARGET</div>
+   <select className="target-switch" value={current?.id||''} onChange={e=>choose(e.target.value)} aria-label="Select active research target">
+    <option value="" disabled>Select a target</option>
+    {directory.mine.length>0&&<optgroup label="My targets">{directory.mine.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>}
+    {directory.shared.length>0&&<optgroup label="Shared targets">{directory.shared.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>}
+   </select>
+   <button className="nav" onClick={newTarget}><Plus size={16}/> Create target</button>
+   <div className="side-heading" style={{marginTop:20}}>WORKSPACE</div>
+   {nav.map(item=><button className={'nav '+(tab===item.id?'on':'')} key={item.id} onClick={()=>changeTab(item.id)}>{item.icon}{item.label}</button>)}
+   {account.role==='admin'&&<><div className="side-heading" style={{marginTop:18}}>PLATFORM</div><button className={'nav '+(tab==='admin'?'on':'')} onClick={()=>changeTab('admin')}><Settings2 size={16}/> Administration</button></>}
+   <div className="side-bottom"><div>{account.name}</div><div>{account.email}</div><button className="text-link" onClick={onLogout}>Sign out</button></div>
   </aside>
-  <main className="main target-main">
-   <header className="topbar"><div><h1>{current?current.name:'Problem Explorer'}</h1><p>{current?(current.description||'Research target'):'Choose a target or create your own research environment'}</p></div><span className="status"><span className="dot"/>{current?(owned?'MY WORKSPACE':'SHARED / READ ONLY'):'NO TARGET SELECTED'}</span></header>
-   {error&&<div className="alert bad">{error}<button onClick={()=>setError('')}>Dismiss</button></div>}
-   {notice&&<div className="alert good">{notice}<button onClick={()=>setNotice('')}>Dismiss</button></div>}
-   {view==='directory'?<section className="panel target-directory-panel"><h2>Target directory</h2><p className="muted">Open a shared target to explore its hierarchy, or copy it to your personal workspace to edit.</p><h3>My targets</h3>{directory?.mine.map(t=><div className="target-entry" key={t.id}><button className="secondary" onClick={()=>run(()=>open(t))}>{t.name}<ChevronRight size={14}/></button><small>{t.description}</small></div>)}<h3>Shared targets</h3>{[...(directory?.shared||[]),...(directory?.reference?[directory.reference]:[])].map(t=><div className="target-entry" key={t.id}><button className="secondary" onClick={()=>run(()=>open(t))}>{t.name}<ChevronRight size={14}/></button><button className="ghost" disabled={busy} onClick={()=>run(async()=>{const copied=await post<Target>('/targets/'+t.id+'/copy');await refresh();await open(copied);setNotice('Created editable private copy.')})}>Copy to my workspace</button><small>{t.description}</small></div>)}</section>:
-   <div className="target-canvas-layout"><div className="target-graph-wrap"><Graph key={(current?.id||'empty')+version} targetId={current?.id||'__empty__'} onProblem={id=>{if(!current)return;run(async()=>setSelectedProblem(await api('/targets/'+current.id+'/problems/'+id)))}}/>
-    {!current&&<div className="target-empty-hint">Start by creating or selecting a research target.</div>}</div>
-    <section className="panel target-context"><h3>{current?'Target workspace':'Getting started'}</h3>
-     {!current?<><p className="muted">A target is the central node. Research streams branch outward into categories and problems.</p><button className="primary" onClick={()=>setWizard(true)}>Create target</button><button className="secondary" onClick={()=>setView('directory')}>Browse shared targets</button></>:
-     <><p className="muted">{owned?'This is your editable research workspace.':'This is a read-only shared target.'}</p>
-      {!owned&&<button className="primary" disabled={busy} onClick={copyCurrent}><FolderPlus size={16}/> Copy into my workspace</button>}
-      {owned&&<div className="button-row target-buttons"><button className="ghost small" onClick={()=>run(async()=>{if(!current)return;const name=prompt('Target name',current.name);if(!name)return;const description=prompt('Scope',current.description)||'';await api('/targets/'+current.id,{method:'PATCH',body:JSON.stringify({name,description,shared:current.shared})});setCurrent({...current,name,description});await refresh()})}>Edit target</button><button className="ghost small" onClick={()=>run(async()=>{await api('/targets/'+current!.id,{method:'PATCH',body:JSON.stringify({name:current!.name,description:current!.description,shared:!current!.shared})});setCurrent({...current!,shared:!current!.shared});await refresh()})}>{current.shared?'Make private':'Share target'}</button><button className="ghost small" onClick={()=>run(async()=>{if(!confirm('Delete this target and its research? This cannot be undone.'))return;await api('/targets/'+current!.id,{method:'DELETE'});setCurrent(null);await refresh()})}>Delete</button></div>}
-      {selectedProblem?<><button className="ghost small" onClick={()=>setSelectedProblem(null)}>← Back</button><h3>Problem #{selectedProblem.id}</h3><p>{selectedProblem.description}</p>{owned&&<div className="button-row"><button className="ghost small" onClick={()=>run(async()=>{const statement=prompt('Problem statement',selectedProblem.description);if(!statement)return;await api('/targets/'+current!.id+'/problems/'+selectedProblem.id,{method:'PATCH',body:JSON.stringify({statement})});setSelectedProblem({...selectedProblem,description:statement});await refreshGraph()})}>Edit</button><button className="ghost small" onClick={()=>run(async()=>{if(!confirm('Delete problem?'))return;await api('/targets/'+current!.id+'/problems/'+selectedProblem.id,{method:'DELETE'});setSelectedProblem(null);await refreshGraph()})}>Delete</button></div>}</>:
-      <><h3>Research streams</h3>{streams.map(t=><button className={'stream '+(selectedStream===t.id?'on':'')} key={t.id} onClick={()=>run(()=>fetchCategories(t.id))}>{t.name}<ChevronRight size={13}/></button>)}
-      {owned&&<><label className="field">Add stream<input value={newStream} onChange={e=>setNewStream(e.target.value)} placeholder="Research stream name"/></label><label className="field">Scope<textarea rows={2} value={newDescription} onChange={e=>setNewDescription(e.target.value)}/></label><button className="secondary" disabled={busy||newStream.trim().length<3} onClick={()=>run(async()=>{await post('/targets/'+current!.id+'/streams',{name:newStream,description:newDescription});setNewStream('');setNewDescription('');await refreshGraph()})}>Add stream</button></>}
-      {selectedStream&&owned&&<><h3>Categories</h3>{categories.map(c=><button className={'stream '+(selectedCategory===c.id?'on':'')} key={c.id} onClick={()=>setSelectedCategory(c.id)}>{c.label}</button>)}<label className="field">New category<input value={newCategory} onChange={e=>setNewCategory(e.target.value)}/></label><button className="secondary" disabled={busy||newCategory.trim().length<3} onClick={()=>run(async()=>{await post('/targets/'+current!.id+'/streams/'+selectedStream+'/categories',{name:newCategory});setNewCategory('');await fetchCategories(selectedStream);await refreshGraph()})}>Add category</button></>}
-      {selectedCategory&&owned&&<><h3>Add problem</h3><textarea rows={3} value={newProblem} onChange={e=>setNewProblem(e.target.value)} placeholder="Describe an unmet need"/><button className="secondary" disabled={busy||newProblem.trim().length<20} onClick={()=>run(async()=>{await post('/targets/'+current!.id+'/categories/'+encodeURIComponent(selectedCategory)+'/problems',{statement:newProblem});setNewProblem('');await refreshGraph()})}>Save problem</button></>}
-      </>}
-     </>}
-    </section></div>}
-   {wizard&&<div className="wizard-backdrop" role="presentation"><section className="wizard-card" role="dialog" aria-modal="true" aria-label="Create research target"><div className="wizard-head"><div><h2>Create research target</h2><p className="muted">Define the center node, then select or customize its research streams.</p></div><button className="ghost" onClick={()=>setWizard(false)}>Close</button></div>
-     <label className="field">Target name<input autoFocus value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Human-centered robotics for longevity"/></label>
-     <label className="field">Research scope<textarea rows={3} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="What issue, population or context will this target explore?"/></label>
-     <label className="field">Initial research depth<select value={form.detail} onChange={e=>setForm({...form,detail:e.target.value})}><option value="outline">Outline · 3 streams</option><option value="standard">Standard · 5 streams</option><option value="detailed">Detailed · 7 streams</option></select></label>
-     <button className="secondary" disabled={busy||form.name.trim().length<3} onClick={()=>run(async()=>{const data=await post<{streams:{name:string,description:string}[]}>('/targets/suggest-streams',form);setSuggestions(data.streams.map(x=>({...x,selected:true})))})}><Sparkles size={15}/>{busy?'Working…':'AI suggest research streams'}</button>
-     {suggestions.length>0&&<><h3>Review suggested research streams</h3><p className="muted">Unverified AI draft. Select, rename, or remove streams before creating the graph.</p><div className="wizard-streams">{suggestions.map((s,i)=><div className="wizard-stream" key={i}><input type="checkbox" checked={s.selected} onChange={e=>setSuggestions(v=>v.map((x,j)=>j===i?{...x,selected:e.target.checked}:x))} aria-label={'Select '+s.name}/><div><input value={s.name} onChange={e=>setSuggestions(v=>v.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/><textarea rows={2} value={s.description} onChange={e=>setSuggestions(v=>v.map((x,j)=>j===i?{...x,description:e.target.value}:x))}/></div></div>)}</div></>}
-     <div className="button-row"><input placeholder="Add your own research stream" value={manualStream} onChange={e=>setManualStream(e.target.value)}/><button className="secondary" disabled={manualStream.trim().length<3} onClick={()=>{setSuggestions(v=>[...v,{name:manualStream.trim(),description:'',selected:true}]);setManualStream('')}}>Add</button></div>
-     <label className="field"><input type="checkbox" checked={form.shared} onChange={e=>setForm({...form,shared:e.target.checked})}/> Share read-only in target directory</label>
-     <div className="wizard-actions"><button className="ghost" onClick={()=>setWizard(false)}>Cancel</button><button className="primary" disabled={busy||form.name.trim().length<3||!suggestions.some(x=>x.selected&&x.name.trim().length>=3)} onClick={saveWizard}>Create target and graph →</button></div>
-    </section></div>}
-  </main>
+   </FloatingPanel>
+   <FloatingPanel id="overview" title="Target overview" state={panels.overview} update={updatePanel} focus={focusPanel}>
+    <main className="main target-main-v07">
+   <header className="topbar"><div><div className="eyebrow">{current?(readOnly?'SHARED · READ ONLY':'PRIVATE WORKSPACE'):'YOUR WORKSPACE'}</div><h1>{tab==='admin'?'Administration':current?.name||'Explore a new research target'}</h1><p>{current?.description||'Create a target to begin research, or open the shared target library.'}</p></div><div className="top-actions">{current&&readOnly&&<button className="primary" disabled={!!busy} onClick={()=>copyTarget(current)}><Plus size={15}/> Copy to workspace</button>}{current&&!readOnly&&<button className="ghost small" onClick={startEdit}>Edit target</button>}<span className="status"><span className="dot"/> {busy?'Working…':'Workspace ready'}</span></div></header>
+   {error&&<div className="alert bad" role="alert">{error}<button onClick={()=>setError('')}>Dismiss</button></div>}
+   {notice&&<div className="alert good" role="status">{notice}<button onClick={()=>setNotice('')}>Dismiss</button></div>}
+   {current&&<div className="metrics"><div><strong>{stats.streams}</strong><small>Research streams</small></div><div><strong>{stats.categories}</strong><small>Categories</small></div><div><strong>{stats.problems}</strong><small>Problems</small></div><div><strong>{stats.solutions}</strong><small>Saved concepts</small></div></div>}
+
+<section className="list-panel overview-list"><div className="pane-title"><span><BookOpen size={16}/> Target problems</span><span className="mini">{problems.length} records</span></div><label className="searchbox"><Search size={16}/><input value={searchText} placeholder="Filter problems…" onChange={e=>setSearchText(e.target.value)}/></label>{renderProblemList(problems.filter(p=>p.description.toLowerCase().includes(searchText.toLowerCase())).slice(0,250))}</section>
+    </main>
+   </FloatingPanel>
+   {panels.directory.isOpen&&<FloatingPanel id="directory" title="Target directory" state={panels.directory} update={updatePanel} focus={focusPanel}><div className="content wide-content"><section className="panel"><div className="pane-title"><span><BookOpen size={18}/> Target directory</span><button className="primary" onClick={newTarget}><Plus size={14}/> Create target</button></div><p className="muted">Shared targets open in read-only mode. Make a private editable copy to conduct research and generate concepts independently.</p><h3>My targets</h3>{directory.mine.length?directory.mine.map(t=><div className="target-row" key={t.id}><div><strong>{t.name}</strong><p>{t.description||'No description'}</p></div><button className="secondary" onClick={()=>run('open',()=>selectTarget(t))}>Open</button></div>):<p className="empty">You have not created a target yet.</p>}
+   <h3>Shared targets</h3>{directory.shared.map(t=><div className="target-row" key={t.id}><div><strong>{t.name}</strong><p>{t.description||'Shared research'}</p></div><div className="button-row"><button className="secondary" onClick={()=>run('open',()=>selectTarget(t))}>Explore</button><button className="primary" onClick={()=>copyTarget(t)} disabled={!!busy}>Copy to workspace</button></div></div>)}</section></div></FloatingPanel>}
+
+   {panels.admin.isOpen && account.role==='admin'&&<FloatingPanel id="admin" title="Administration" state={panels.admin} update={updatePanel} focus={focusPanel}><AdminConsole/></FloatingPanel>}
+
+   {panels.problems.isOpen&&<FloatingPanel id="problems" title="Problem library" state={panels.problems} update={updatePanel} focus={focusPanel}><div className="content wide-content"><section className="panel"><div className="pane-title"><span><Search size={17}/> Problem library and matching</span></div><p className="muted">Search only within the selected target. Semantic matches require embeddings; lexical search remains available without AI calls.</p><div className="search-row"><input value={searchText} onChange={e=>setSearchText(e.target.value)} placeholder="Describe a problem or enter keywords"/><select value={searchMode} onChange={e=>setSearchMode(e.target.value)}><option value="exact">Lexical</option><option value="hybrid">Hybrid</option><option value="semantic">Semantic</option></select><button className="primary" disabled={!current||!!busy||searchText.length<3} onClick={()=>run('search',async()=>{const r=await post<{results:any[],mode:string}>(path+'/search',{text:searchText,mode:searchMode});setSearchResults(r.results);setNotice(r.results.length+' '+r.mode+' results.')})}>Search</button></div><div className="button-row">{!readOnly&&current&&<button className="secondary" onClick={()=>run('index',async()=>{await post(path+'/index/queue');setNotice('Background semantic indexing queued for this target.')})}>Queue target indexing</button>}<button className="ghost" onClick={()=>{setSearchResults(null);setSearchText('')}}>Clear</button></div><h3>{searchResults?'Search results':'All problems'}</h3>{renderProblemList((searchResults||problems) as Problem[])}</section></div></FloatingPanel>}
+
+   {panels.research.isOpen&&<FloatingPanel id="research" title="Research & evidence" state={panels.research} update={updatePanel} focus={focusPanel}><div className="content"><section className="panel"><div className="pane-title"><span><BookOpen size={17}/> Problem research</span>{selected&&<span className="mini">Problem #{selected.id}</span>}</div>{selected?<><h2>{selected.description}</h2><p className="muted">{selected.stream} · {selected.category}</p><h3>Evidence and source review</h3><p className="muted">AI-assisted research is an evidence-gathering draft. Verify every source and claim before using it in a design proposal.</p><label className="field">Research focus<textarea rows={3} value={focus} onChange={e=>setFocus(e.target.value)}/></label><button className="primary" disabled={readOnly||!!busy} onClick={()=>run('research',async()=>{const r=await post<{saved:number}>(path+'/problems/'+selected.id+'/research',{focus});await loadProblem(selected.id,false);setNotice(r.saved+' sourced findings saved for review.')})}><FlaskConical size={16}/> {busy==='research'?'Researching…':'Research with OpenAI'}</button>{readOnly&&<p className="mini">Copy this shared target to conduct your own research.</p>}<div className="divider"/><h3>Findings · {selected.findings?.length||0}</h3>{selected.findings?.length?selected.findings.map(f=><div className="finding" key={f.id}><span className="pill">{f.reviewStatus||'needs_review'}</span><p>{f.claim}</p>{f.statistic&&<p><strong>{f.statistic}</strong></p>}{f.limitations&&<small>Limitations: {f.limitations}</small>}{f.url&&<a href={f.url} rel="noreferrer" target="_blank">{f.title||f.url}<ExternalLink size={12}/></a>}{!readOnly&&<div className="button-row"><button className="secondary" disabled={!!busy||f.reviewStatus==='reviewed'} onClick={()=>run('reviewFinding',async()=>{await patch(path+'/findings/'+f.id,{status:'reviewed'});await loadProblem(selected.id,false)})}>Mark source reviewed</button><button className="ghost" disabled={!!busy||f.reviewStatus==='rejected'} onClick={()=>run('rejectFinding',async()=>{await patch(path+'/findings/'+f.id,{status:'rejected'});await loadProblem(selected.id,false)})}>Reject finding</button></div>}</div>):<p className="empty">No sourced findings yet.</p>}<div className="divider"/><h3>Generate concepts from this problem</h3><label className="field">Design direction<textarea rows={2} value={designDirection} onChange={e=>setDesignDirection(e.target.value)} placeholder="Optional: affordability, low-tech options, dignity, maintenance…"/></label><div className="button-row"><select value={conceptCount} onChange={e=>setConceptCount(Number(e.target.value))}>{[2,3,4,5,6].map(n=><option value={n} key={n}>{n} concepts</option>)}</select><button className="primary" disabled={readOnly||!!busy} onClick={()=>run('generate',async()=>{const r=await post<{concepts:any[]}>(path+'/problems/'+selected.id+'/concepts/generate',{count:conceptCount,direction:designDirection});await loadProblem(selected.id,false);setNotice(r.concepts.length+' drafts generated.')})}><Sparkles size={15}/> Generate draft concepts</button></div><h3>Generated concepts · {drafts.length}</h3>{drafts.map(d=><div className="finding" key={d.id}><span className="pill">{d.status}</span><label className="field">Concept name<input disabled={d.status==='saved'||readOnly} value={draftEdits[d.id]?.name??d.name} onChange={e=>setDraftEdits(prev=>({...prev,[d.id]:{name:e.target.value,description:prev[d.id]?.description??d.description}}))}/></label><label className="field">Description<textarea rows={3} disabled={d.status==='saved'||readOnly} value={draftEdits[d.id]?.description??d.description} onChange={e=>setDraftEdits(prev=>({...prev,[d.id]:{name:prev[d.id]?.name??d.name,description:e.target.value}}))}/></label><details><summary>Mechanism, risks, and assumptions</summary><p>{d.details?.mechanism}</p><ul>{(d.details?.assumptions||[]).map((x:string,i:number)=><li key={i}>{x}</li>)}</ul></details>{d.status==='saved'&&d.solutionId?<button className="secondary" onClick={()=>run('concept',()=>loadSolution(d.solutionId!))}>Open saved concept</button>:<button disabled={readOnly||!!busy} className="secondary" onClick={()=>run('saveDraft',async()=>{await post(path+'/concept-drafts/'+d.id+'/save',{name:draftEdits[d.id]?.name??d.name,description:draftEdits[d.id]?.description??d.description});await loadProblem(selected.id,false);await refreshTarget();setNotice('Saved as a concept.')})}>Save to concepts</button>}</div>)}</>:<div className="empty">Select a problem in the graph or Problem library to research it.</div>}</section></div></FloatingPanel>}
+
+   {panels.discovery.isOpen&&<FloatingPanel id="discovery" title="Problem discovery" state={panels.discovery} update={updatePanel} focus={focusPanel}><div className="content wide-content"><section className="panel"><div className="pane-title"><span><Sparkles size={17}/> AI problem discovery</span></div><p className="muted">Discover evidence-linked unmet problems within the selected target. Candidates are provisional until you review and approve them.</p><label className="field">Research topic<textarea rows={3} value={discoveryTopic} onChange={e=>setDiscoveryTopic(e.target.value)} placeholder="Who is affected, where, and which unmet needs should be explored?"/></label><button className="primary" disabled={!current||readOnly||!!busy||discoveryTopic.length<10} onClick={()=>run('discover',async()=>{const result=await post<{count:number}>(path+'/discoveries/search',{topic:discoveryTopic});await refreshTarget();setNotice(result.count+' candidates discovered for review.')})}><Sparkles size={15}/> Research unmet problems</button><h3>Review queue · {discoveries.length}</h3>{discoveries.length?discoveries.map(d=><div className="finding" key={d.id}><div className="row"><strong>Discovery candidate</strong><span className="pill">{d.status}</span></div>{d.status==='pending_review'&&!readOnly?<label className="field">Edit problem statement<textarea rows={3} value={discoveryEdits[d.id]??d.statement} onChange={e=>setDiscoveryEdits(prev=>({...prev,[d.id]:e.target.value}))}/></label>:<p>{d.statement}</p>}<p className="muted">{d.rationale}</p>{d.evidenceUrls?.map((url:string,i:number)=><a key={i} target="_blank" rel="noreferrer" href={url}>{url}<ExternalLink size={12}/></a>)}{d.status==='pending_review'&&!readOnly&&<div className="button-row"><button className="primary" disabled={!!busy} onClick={()=>run('approve',async()=>{await post(path+'/discoveries/'+d.id+'/approve',{statement:discoveryEdits[d.id]||undefined});await refreshTarget();setNotice('Discovery approved and added to the graph.')})}>Approve problem</button><button className="secondary" disabled={!!busy} onClick={()=>run('reject',async()=>{await post(path+'/discoveries/'+d.id+'/reject');await refreshTarget()})}>Reject</button></div>}</div>):<p className="empty">No discoveries yet. Create categories under Manage hierarchy before searching.</p>}</section></div></FloatingPanel>}
+
+   {panels.concepts.isOpen&&<FloatingPanel id="concepts" title="Concept studio" state={panels.concepts} update={updatePanel} focus={focusPanel}><div className="solution-layout"><section className="panel"><div className="pane-title"><span><Plus size={16}/> Create a concept</span></div><label className="field">Name<input value={conceptName} onChange={e=>setConceptName(e.target.value)}/></label><label className="field">Description<textarea rows={6} value={conceptDescription} onChange={e=>setConceptDescription(e.target.value)} placeholder="Intended users, mechanisms, benefits, risks and uncertainties…"/></label><button className="primary" disabled={readOnly||!!busy||conceptName.trim().length<3||conceptDescription.trim().length<40} onClick={()=>run('newConcept',async()=>{const created=await post<Sol>(path+'/solutions',{name:conceptName,description:conceptDescription});setConceptName('');setConceptDescription('');await refreshTarget();await loadSolution(created.id);setNotice('Concept saved.')})}><Plus size={14}/> Save concept</button><h3>Saved concepts</h3>{sols.map(s=><button className="saved-item" key={s.id} onClick={()=>run('concept',()=>loadSolution(s.id))}>{s.name}<ChevronRight size={15}/></button>)}{!sols.length&&<p className="empty">No saved concepts yet. Create one, or generate drafts from a problem record.</p>}</section><section className="panel"><div className="pane-title"><span><Lightbulb size={17}/> Concept workspace</span></div>{solution?<><h2>{solution.name}</h2><p className="muted">{solution.description}</p><div className="button-row"><button className="primary" onClick={()=>changeTab('matching')}>Problem matching</button><button className="secondary" onClick={()=>changeTab('evaluation')}>Concept analysis</button></div></>:<p className="empty">Select a saved concept to work on its matching and evaluation.</p>}</section></div></FloatingPanel>}
+
+   {panels.matching.isOpen&&<FloatingPanel id="matching" title="Concept matching" state={panels.matching} update={updatePanel} focus={focusPanel}><div className="content wide-content"><section className="panel"><div className="pane-title"><span><Network size={17}/> Problem matching</span></div><label className="field">Selected concept<select value={solution?.id||''} onChange={e=>{if(e.target.value)run('concept',()=>loadSolution(e.target.value,false))}}><option value="">Choose a concept</option>{sols.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label>{solution?<><h2>{solution.name}</h2><p className="muted">{solution.description}</p><button className="primary" disabled={readOnly||!!busy} onClick={()=>run('match',async()=>{const result=await post<{matches:any[]}>(path+'/solutions/'+solution.id+'/match');await loadSolution(solution.id,false);setNotice(result.matches.length+' potential matches generated.')})}><Network size={15}/> Match to target problems</button><h3>Potential problem matches</h3>{solution.matches?.length?solution.matches.map(m=><div className="match" key={m.problemId}><div className="row"><strong>#{m.problemId}: {m.description}</strong><span className="score">{m.relevance}% relevance</span></div><p>{m.rationale}</p><small>{m.relationship} · {m.confidence} confidence · not proven impact</small><button className="text-link" onClick={()=>run('problem',()=>loadProblem(m.problemId))}>Inspect problem →</button></div>):<p className="empty">Run matching to identify possible relationships. Matching is not proof of effectiveness.</p>}</>:<p className="empty">Create or choose a concept in the Concepts workspace.</p>}</section></div></FloatingPanel>}
+
+   {panels.evaluation.isOpen&&<FloatingPanel id="evaluation" title="Concept evaluation" state={panels.evaluation} update={updatePanel} focus={focusPanel}><div className="content wide-content"><section className="panel"><div className="pane-title"><span><BarChart3 size={17}/> Concept analysis</span></div><label className="field">Selected concept<select value={solution?.id||''} onChange={e=>{if(e.target.value)run('concept',()=>loadSolution(e.target.value,false))}}><option value="">Choose a concept</option>{sols.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label>{solution?<><h2>{solution.name}</h2><p className="muted">{solution.matches?.length||0} saved problem matches in this target</p><button className="primary" disabled={readOnly||!!busy} onClick={()=>run('evaluate',async()=>{const result=await post<{data:Eval}>(path+'/solutions/'+solution.id+'/evaluate');setEvaluation(result.data);await loadSolution(solution.id,false);setNotice('Provisional evaluation saved.')})}>Generate structured evaluation</button>{evaluation?<><div className="evalchart"><ResponsiveContainer width="100%" height={280}><RadarChart data={evaluation.factors.map(f=>({factor:f.factor,score:f.score||0}))}><PolarGrid/><PolarAngleAxis dataKey="factor" tick={{fill:'#a2b1bb',fontSize:12}}/><Tooltip/><Radar dataKey="score" stroke="#8fc4ae" fill="#8fc4ae" fillOpacity={0.25}/></RadarChart></ResponsiveContainer></div><p className="muted">{evaluation.summary}</p><div className="factor-grid">{evaluation.factors.map(f=><div className="factor" key={f.factor}><div className="row"><strong>{f.factor}</strong><span className="score">{f.score===null?'Unrated':f.score+'/5'}</span></div><p>{f.rationale}</p><small>{f.confidence} confidence</small><details><summary>Open questions</summary>{f.unanswered_questions.map((x,i)=><p key={i}>{x}</p>)}</details></div>)}</div><h3>Risks</h3><ul>{evaluation.risks.map((x,i)=><li key={i}>{x}</li>)}</ul><h3>Next research</h3><ul>{evaluation.next_research.map((x,i)=><li key={i}>{x}</li>)}</ul></>:<p className="empty">No evaluation yet. Missing evidence should produce unrated factors rather than invented precision.</p>}</>:<p className="empty">Choose a saved concept to analyze.</p>}</section></div></FloatingPanel>}
+
+   {panels.manage.isOpen&&<FloatingPanel id="manage" title="Research structure" state={panels.manage} update={updatePanel} focus={focusPanel}><div className="content wide-content"><section className="panel"><div className="pane-title"><span><Settings2 size={17}/> Target hierarchy</span><span className="pill">{readOnly?'Read-only':'Editable'}</span></div><p className="muted">The graph is Target → Stream → Category → Problem. Choose a stream to generate an editable taxonomy or add records manually.</p><div className="hierarchy-columns"><div><h3>Research streams</h3>{streams.map(s=><button className={'saved-item '+(selectedStream===s.id?'active':'')} key={s.id} onClick={()=>{setSelectedStream(s.id);setSeedPreview(null);setSelectedCategory('')}}>{s.name}<ChevronRight size={14}/></button>)}{!readOnly&&<div className="quick-add"><input value={newStream} placeholder="New stream" onChange={e=>setNewStream(e.target.value)}/><button className="secondary" disabled={!current||!!busy||newStream.length<3} onClick={()=>run('addStream',async()=>{await post(path+'/streams',{name:newStream,description:''});setNewStream('');await refreshTarget()})}>Add</button></div>}</div><div><h3>Categories</h3>{hierarchy.filter(h=>h.streamId===selectedStream&&h.categoryId).map(h=><button key={h.categoryId} className={'saved-item '+(selectedCategory===h.categoryId?'active':'')} onClick={()=>setSelectedCategory(h.categoryId!)}>{h.category} <span className="mini">{h.count}</span></button>)}{!readOnly&&selectedStream&&<div className="quick-add"><input value={newCategory} placeholder="New category" onChange={e=>setNewCategory(e.target.value)}/><button className="secondary" disabled={!!busy||newCategory.length<3} onClick={()=>run('addCategory',async()=>{await post(path+'/streams/'+selectedStream+'/categories',{name:newCategory});setNewCategory('');await refreshTarget()})}>Add</button></div>}</div></div>{selectedCategory&&<><h3>Problems in selected category</h3>{problems.filter(p=>p.categoryId===selectedCategory).map(p=><div className="target-row" key={p.id}><div><strong>#{p.id}</strong><p>{p.description}</p></div><div className="button-row"><button className="secondary" onClick={()=>run('problem',()=>loadProblem(p.id))}>Open</button>{!readOnly&&<><button className="ghost small" onClick={()=>{const statement=window.prompt('Edit problem statement',p.description);if(!statement||statement.trim().length<20)return;run('editProblem',async()=>{await patch(path+'/problems/'+p.id,{statement});await refreshTarget()})}}>Edit</button><button className="ghost small danger" onClick={()=>{if(!window.confirm('Delete this problem?'))return;run('deleteProblem',async()=>{await del(path+'/problems/'+p.id);await refreshTarget()})}}>Delete</button></>}</div></div>)}{!readOnly&&<div className="quick-add"><textarea value={newProblem} rows={3} placeholder="Add an observable problem statement (20+ characters)" onChange={e=>setNewProblem(e.target.value)}/><button className="primary" disabled={!!busy||newProblem.length<20} onClick={()=>run('addProblem',async()=>{await post(path+'/categories/'+encodeURIComponent(selectedCategory)+'/problems',{statement:newProblem});setNewProblem('');await refreshTarget()})}>Add problem</button></div>}</>}
+   {!readOnly&&selectedStream&&<div className="button-row"><button className="ghost small" onClick={()=>{const found=streams.find(s=>s.id===selectedStream);if(!found)return;const name=window.prompt('Rename stream',found.name);if(!name||name.trim().length<3)return;run('renameStream',async()=>{await patch(path+'/streams/'+selectedStream,{name,description:found.description||''});await refreshTarget()})}}>Rename stream</button><button className="ghost small danger" onClick={()=>{if(!window.confirm('Delete stream and its categories and problems?'))return;run('deleteStream',async()=>{await del(path+'/streams/'+selectedStream);setSelectedStream('');setSelectedCategory('');await refreshTarget()})}}>Delete stream</button></div>}
+   {!readOnly&&selectedCategory&&<div className="button-row"><button className="ghost small" onClick={()=>{const category=hierarchy.find(h=>h.categoryId===selectedCategory);const name=window.prompt('Rename category',category?.category||'');if(!name||name.trim().length<3)return;run('renameCategory',async()=>{await patch(path+'/categories/'+encodeURIComponent(selectedCategory),{name});await refreshTarget()})}}>Rename category</button><button className="ghost small danger" onClick={()=>{if(!window.confirm('Delete this category and all problems within it?'))return;run('deleteCategory',async()=>{await del(path+'/categories/'+encodeURIComponent(selectedCategory));setSelectedCategory('');await refreshTarget()})}}>Delete category</button></div>}
+   {!readOnly&&selectedStream&&<div className="divider"/>}{!readOnly&&selectedStream&&<><h3>AI-generated taxonomy</h3><p className="muted">Create editable draft categories and problem hypotheses for this stream. These are not verified evidence.</p><div className="button-row"><select value={seedDetail} onChange={e=>setSeedDetail(e.target.value)}><option value="outline">Outline · 3 categories</option><option value="standard">Standard · 5 categories / 3 problems each</option><option value="detailed">Detailed · 7 categories / 6 problems each</option></select><button className="secondary" disabled={!!busy} onClick={()=>run('previewSeed',async()=>{const r=await post<{categories:SeedCategory[]}>(path+'/streams/'+selectedStream+'/seed-preview',{detail:seedDetail});setSeedPreview(r.categories)})}><Sparkles size={15}/> Generate draft</button></div>{seedPreview&&<div className="seed-preview"><h3>Review before saving</h3>{seedPreview.map((c,i)=><div className="finding" key={i}><label className="field">Category<input value={c.name} onChange={e=>setSeedPreview(old=>old?.map((x,j)=>i===j?{...x,name:e.target.value}:x)||null)}/></label>{c.problems.map((p,j)=><label className="field" key={j}>Problem hypothesis<textarea rows={2} value={p} onChange={e=>setSeedPreview(old=>old?.map((x,k)=>k===i?{...x,problems:x.problems.map((v,n)=>n===j?e.target.value:v)}:x)||null)}/></label>)}</div>)}<div className="button-row"><button className="primary" disabled={!!busy} onClick={()=>run('saveSeed',async()=>{const r=await post<{categories:any[]}>(path+'/streams/'+selectedStream+'/taxonomy',{categories:seedPreview});setSeedPreview(null);await refreshTarget();setNotice(r.categories.length+' draft categories saved.')})}>Save reviewed taxonomy</button><button className="ghost" onClick={()=>setSeedPreview(null)}>Discard draft</button></div></div>}</>}</section></div></FloatingPanel>}
+  </div>
+  {problemModalOpen&&selected&&<div className="context-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setProblemModalOpen(false)}}>
+    <section className="context-modal" role="dialog" aria-modal="true" aria-label="Problem detail">
+      <div className="context-modal-heading"><div className="eyebrow">PROBLEM #{selected.id} · {selected.stream} / {selected.category}</div>
+        <button className="ghost small" onClick={()=>setProblemModalOpen(false)} aria-label="Close problem details">Close</button></div>
+      <h2>{selected.description}</h2>
+      <p className="muted">{selected.findings?.length||0} sourced findings · {selected.solutions?.length||0} linked saved concepts · {drafts.length} concept drafts</p>
+      <div className="context-modal-actions">
+        <button className="primary" onClick={()=>{setProblemModalOpen(false);changeTab('research')}}><BookOpen size={15}/> Research & evidence</button>
+        <button className="secondary" onClick={()=>{setProblemModalOpen(false);changeTab('concepts')}}><Lightbulb size={15}/> Concepts</button>
+        <button className="ghost" onClick={()=>{setProblemModalOpen(false);changeTab('problems')}}>Problem library</button>
+      </div>
+      {!!selected.findings?.length&&<div className="modal-findings"><h3>Recent evidence</h3>{selected.findings.slice(0,4).map(item=><div className="finding" key={item.id}><small>{item.reviewStatus||'needs_review'}</small><p>{item.claim}</p>{item.url&&<a href={item.url} target="_blank" rel="noreferrer">{item.title||'View source'} <ExternalLink size={13}/></a>}</div>)}</div>}
+      {readOnly&&<p className="mini">Shared targets are read-only. Copy the target into your workspace to edit or run AI research.</p>}
+    </section>
+  </div>}
+  {wizard&&<div className="wizard-backdrop" role="dialog" aria-modal="true" aria-label="Create research target"><div className="wizard-card"><div className="wizard-head"><div><div className="eyebrow">NEW RESEARCH WORKSPACE</div><h2>Create a target</h2><p className="muted">Define the central question. Suggest and select initial research streams. Your graph will start at the target and expand from there.</p></div><button className="ghost" onClick={()=>setWizard(false)}>Close</button></div><label className="field">Target name<input maxLength={120} value={wizardName} onChange={e=>setWizardName(e.target.value)} placeholder="e.g. Human-centered robotics for longevity"/></label><label className="field">Scope / intended users<textarea value={wizardScope} rows={3} maxLength={1500} onChange={e=>setWizardScope(e.target.value)} placeholder="Define boundaries, populations, setting and goals."/></label><div className="search-row"><label className="field">Research detail<select value={wizardDetail} onChange={e=>setWizardDetail(e.target.value)}><option value="outline">Outline · 3 streams</option><option value="standard">Standard · 5 streams</option><option value="detailed">Detailed · 7 streams</option></select></label><button className="secondary" disabled={!!busy||wizardName.trim().length<3} onClick={()=>run('suggest',async()=>{const r=await post<{streams:{name:string,description:string}[]}>('/targets/suggest-streams',{name:wizardName,description:wizardScope,detail:wizardDetail});setSuggestions(r.streams.map(x=>({...x,selected:true})))})}><Sparkles size={15}/> Suggest research streams</button></div><div className="wizard-streams">{suggestions.map((s,i)=><div className="wizard-stream" key={i}><input type="checkbox" checked={s.selected} onChange={e=>setSuggestions(old=>old.map((x,j)=>i===j?{...x,selected:e.target.checked}:x))}/><div><input value={s.name} aria-label="Stream name" onChange={e=>setSuggestions(old=>old.map((x,j)=>i===j?{...x,name:e.target.value}:x))}/><textarea rows={2} value={s.description} aria-label="Stream scope" onChange={e=>setSuggestions(old=>old.map((x,j)=>i===j?{...x,description:e.target.value}:x))}/></div></div>)}</div><div className="quick-add"><input value={manualSuggestion} placeholder="Add your own research stream" onChange={e=>setManualSuggestion(e.target.value)}/><button className="secondary" disabled={manualSuggestion.trim().length<3} onClick={()=>{setSuggestions(old=>[...old,{name:manualSuggestion.trim(),description:'',selected:true}]);setManualSuggestion('')}}><Plus size={15}/> Add</button></div><label className="field"><input type="checkbox" checked={wizardShared} onChange={e=>setWizardShared(e.target.checked)} style={{width:'auto',display:'inline-block',marginRight:10}}/>Share this target as read-only to other users</label><div className="wizard-actions"><button className="ghost" onClick={()=>{setWizard(false);changeTab('directory')}}>Browse shared targets</button><button className="primary" disabled={!!busy||wizardName.trim().length<3||!suggestions.some(x=>x.selected&&x.name.trim().length>=3)} onClick={createTarget}>Create target and graph</button></div></div></div>}
+
+  {editTarget&&current&&<div className="wizard-backdrop" role="dialog" aria-modal="true" aria-label="Edit target"><div className="wizard-card"><h2>Edit target</h2><label className="field">Name<input value={editingName} onChange={e=>setEditingName(e.target.value)}/></label><label className="field">Scope<textarea rows={4} value={editingDesc} onChange={e=>setEditingDesc(e.target.value)}/></label><label className="field"><input type="checkbox" checked={editingShared} onChange={e=>setEditingShared(e.target.checked)} style={{display:'inline-block',width:'auto',marginRight:10}}/>Allow others to view or copy this target</label><div className="wizard-actions"><button className="ghost" onClick={()=>setEditTarget(false)}>Cancel</button><button className="primary" disabled={!!busy||editingName.length<3} onClick={saveSettings}>Save changes</button><button className="ghost danger" onClick={()=>{if(!window.confirm('Permanently delete this target and all its research, concepts and data?'))return;run('deleteTarget',async()=>{await del(path);setCurrent(null);setEditTarget(false);const d=await reloadDirectory();if(d.mine.length)await selectTarget(d.mine[0]);else{setWizard(true);changeTab('graph')}})}}><Trash2 size={14}/> Delete target</button></div></div></div>}
  </div>;
 }
 
-function Root(){
- const [account,setAccount]=useState<Account|null>(null);const [ready,setReady]=useState(false);const [adminView,setAdminView]=useState(false);const [workspaceMode,setWorkspaceMode]=useState<'targets'|'legacy'>('targets');
- useEffect(()=>{api<{user:Account|null}>('/auth/me').then(r=>setAccount(r.user)).finally(()=>setReady(true))},[]);
- if(!ready)return <div className="auth-screen"><span>Loading Problem Explorer…</span></div>;
- if(!account)return <AuthGate onAuthenticated={setAccount}/>;
- return <><div className="account-strip"><span>{account.name} · Private workspace</span><button onClick={()=>{setAdminView(false);setWorkspaceMode(m=>m==='targets'?'legacy':'targets')}}>{workspaceMode==='targets'?'Research, concepts & matching':'Target workspace'}</button>{account.role==='admin'&&<button onClick={()=>setAdminView(v=>!v)}>{adminView?'Back to workspace':'Administration'}</button>}<button onClick={async()=>{await post('/auth/logout');setAccount(null)}}>Sign out</button></div>{adminView&&account.role==='admin'?<AdminConsole/>:<><div style={{display:workspaceMode==='targets'?'block':'none'}}><TargetHome/></div><div style={{display:workspaceMode==='legacy'?'block':'none'}}><div className="alert" style={{margin:'12px 20px'}}><strong>Legacy research tools</strong> — Research, AI discovery, problem matching, concepts and evaluation are restored here. These endpoints still use the original/shared research context and are <strong>not yet scoped to the selected target</strong>. Do not use them for confidential target-specific research until integration is complete.</div><App/></div></>}</>;
-}
-function App(){
- const [tab,setTab]=useState<'explore'|'research'|'solutions'|'evaluation'|'discover'|'streams'>('explore');
- const [stats,setStats]=useState<any>(null);const [q,setQ]=useState('');const [stream,setStream]=useState('');const [problems,setProblems]=useState<Problem[]>([]);const [selected,setSelected]=useState<Problem|null>(null);
- const [searchMode,setSearchMode]=useState('hybrid'); const [searchStatus,setSearchStatus]=useState(''); const [topic,setTopic]=useState('Barriers to aging independently not captured in the current library'); const [discovered,setDiscovered]=useState<any[]>([]); const [drafts,setDrafts]=useState<Record<string,string>>({});
- const [manualStatement,setManualStatement]=useState(''); const [manualCategory,setManualCategory]=useState('');const [hierarchy,setHierarchy]=useState<any[]>([]);
- const [busy,setBusy]=useState('');const [error,setError]=useState('');const [notice,setNotice]=useState('');const [focus,setFocus]=useState('prevalence, severity, populations affected, existing alternatives, evidence gaps');
- const [concepts,setConcepts]=useState<ConceptDraft[]>([]);const [conceptDirection,setConceptDirection]=useState('');const [conceptCount,setConceptCount]=useState(4);const [conceptEdits,setConceptEdits]=useState<Record<string,{name:string,description:string}>>({});
- const [sols,setSols]=useState<Sol[]>([]);const [solution,setSolution]=useState<Sol|null>(null);const [name,setName]=useState('');const [desc,setDesc]=useState(''); const [evalData,setEvalData]=useState<Eval|null>(null);
- const run=async(k:string,fn:()=>Promise<void>)=>{setBusy(k);setError('');setNotice('');try{await fn()}catch(e:any){setError(e.message)}finally{setBusy('')}};
- const reloadStats=()=>api('/stats').then(setStats).catch(e=>setError(e.message));
- const loadProblems=()=>{if(q.trim().length>=3)return post('/search',{text:q,stream,mode:searchMode}).then((d:any)=>{setProblems(d.results);setSearchStatus(d.mode+(d.indexCount!==undefined?` · ${d.indexCount} embedded`:'') )}).catch((e:any)=>setError(e.message));return api<Problem[]>('/problems?'+new URLSearchParams({q:'',stream,limit:'2000'})).then(d=>{setProblems(d);setSearchStatus('');}).catch(e=>setError(e.message))};
- const loadDiscoveries=()=>api<any[]>('/discoveries').then(setDiscovered).catch((e:any)=>setError(e.message));
- const loadSols=()=>api<Sol[]>('/solutions').then(setSols).catch(e=>setError(e.message));
- const selectProblem=(id:number)=>run('problem',async()=>{const p=await api<Problem>('/problems/'+id);setSelected(p);setConcepts(await api<ConceptDraft[]>('/problems/'+id+'/concepts'));setTab('research')});
- const selectSol=(id:string)=>run('solution',async()=>{const s=await api<Sol>('/solutions/'+id);setSolution(s);setEvalData(s.evaluations?.length?JSON.parse(s.evaluations[0].payload):null);setTab('solutions')});
- useEffect(()=>{reloadStats();loadSols();loadDiscoveries();api<any[]>('/hierarchy').then(setHierarchy).catch(e=>setError(e.message))},[]);
- useEffect(()=>{const t=setTimeout(loadProblems,200);return()=>clearTimeout(t)},[q,stream,searchMode]);
- return <div className="app"><aside className="sidebar"><div className="brand"><div className="brandmark"><Network size={23}/></div><div><strong>PROBLEM <b>EXPLORER</b></strong><small>Research & opportunity intelligence</small></div></div><div className="side-heading">WORKSPACES</div>
-  {([{k:'explore',label:'Explore graph',ico:Network},{k:'research',label:'Problem research',ico:BookOpen},{k:'solutions',label:'Solutions & matching',ico:Lightbulb},{k:'evaluation',label:'Evaluation',ico:BarChart3},{k:'discover',label:'Discover problems',ico:Sparkles},{k:'streams',label:'Create research stream',ico:Plus}] as const).map(x=><button className={'nav '+(tab===x.k?'on':'')} key={x.k} onClick={()=>setTab(x.k)}><x.ico size={17}/>{x.label}</button>)}
-  <div className="side-heading" style={{marginTop:28}}>PROBLEM STREAMS</div>
-  <button className={'stream '+(!stream?'on':'')} onClick={()=>{setStream('');setTab('explore')}}>All streams <span>{stats?.problems||498}</span></button>
-  {stats?.streams?.map((x:any)=><button key={x.id} className={'stream '+(stream===x.id?'on':'')} onClick={()=>{setStream(x.id);setTab('explore')}}>{x.name.split('—').slice(-1)[0]?.trim()} <span>{x.count}</span></button>)}
-  <div className="side-bottom">v0.3.3 · research platform<br/>AI-generated findings require review</div>
- </aside><main className="main"><header className="topbar"><div><h1>{tab==='explore'?'Problem explorer':tab==='research'?'Research workspace':tab==='solutions'?'Solution matching':tab==='evaluation'?'Concept evaluation':'Problem discovery'}</h1><p>{tab==='explore'?'Navigate the problem landscape':tab==='research'?'Evidence-led research with traceable sources':tab==='solutions'?'Discover possible problem–solution relationships':tab==='evaluation'?'Five-factor, evidence-aware scoring':'Evidence-led discovery and duplicate review'}</p></div><div className="status"><span className="dot"/> LOCAL INSTANCE</div></header>
-  {error&&<div className="alert bad"><strong>Error:</strong> {error} <button onClick={()=>setError('')}>Dismiss</button></div>}
-  {notice&&<div className="alert good">{notice} <button onClick={()=>setNotice('')}>Dismiss</button></div>}
-  <div className="metrics"><div><strong>{stats?.problems??'—'}</strong><small>Problem statements</small></div><div><strong>{stats?.streams?.length??'—'}</strong><small>Research streams</small></div><div><strong>{stats?.discovered??0}</strong><small>Approved discoveries</small></div><div><strong>{stats?.solutions??0}</strong><small>Saved concepts</small></div></div>
-  {tab==='explore'&&<div className="split"><Graph onProblem={selectProblem}/><section className="list-panel"><div className="pane-title"><span><Search size={17}/> Problem library</span><span className="mini">{problems.length} results</span></div><div className="searchbox"><Search size={16}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search by meaning, activity, barrier or phrase…"/></div><div className="button-row" style={{padding:'8px 12px',alignItems:'center'}}><select value={searchMode} onChange={e=>setSearchMode(e.target.value)}><option value="hybrid">Hybrid search</option><option value="semantic">Semantic search</option><option value="exact">Exact phrase</option></select><span className="mini">{searchStatus}</span></div><div className="problem-list">{problems.map(p=><button className="problem-item" key={p.id} onClick={()=>selectProblem(p.id)}><span className="num">#{String(p.id).padStart(3,'0')}</span><span>{p.description}<small>{p.category}</small></span><ChevronRight size={15}/></button>)}</div></section></div>}
-  {tab==='streams'&&<WorkspaceCreator onCreated={()=>{reloadStats();api<any[]>('/hierarchy').then(setHierarchy)}}/>}
-  {tab==='discover'&&<div className="content"><div className="panel"><div className="pane-title"><span><Sparkles size={17}/> AI-assisted problem discovery</span><span className="mini">Review before adding</span></div><h2>Add a distinct problem</h2><p className="muted">Submit a clearly framed problem that is not already covered. Existing problems are checked for duplicates. Semantic indexing improves matching but is not required to add a problem.</p><label className="field">Problem statement<textarea rows={3} value={manualStatement} onChange={e=>setManualStatement(e.target.value)} placeholder="Describe a specific unmet need or barrier…"/></label><label className="field">Category<select value={manualCategory} onChange={e=>setManualCategory(e.target.value)}><option value="">Choose a category</option>{hierarchy.map(h=><option key={h.categoryId} value={h.categoryId}>{h.streamId} · {h.category}</option>)}</select></label><button className="secondary" disabled={!!busy||manualStatement.trim().length<20||!manualCategory} onClick={()=>run('manual',async()=>{const o=await post('/problems',{statement:manualStatement,categoryId:manualCategory});setNotice(`Added distinct problem #${o.id}`);setManualStatement('');await reloadStats();await loadProblems()})}>{busy==='manual'?'Checking uniqueness…':'Add distinct problem'}</button><div className="divider"/><h2>Discover gaps in the problem library</h2><p className="muted">Research a topic, review candidates and similar problems, and only approve genuinely distinct problems. Proposed discoveries are saved in Neo4j even when rejected or merged, but only approved problems enter searches and concept matching.</p><label className="field">Research topic<textarea rows={3} value={topic} onChange={e=>setTopic(e.target.value)}/></label><div className="button-row"><span className="mini">Semantic embeddings are generated automatically in the background, subject to your usage allowance.</span><button className="primary" disabled={!!busy||topic.trim().length<10} onClick={()=>run('discover',async()=>{const o=await post('/discoveries/search',{topic});await loadDiscoveries();setNotice(`Saved ${o.count} review candidates; excluded ${o.excludedSimilar??0} similar/duplicate statements. Research gaps: ${(o.gaps||[]).join('; ')}`)})}><Sparkles size={16}/>{busy==='discover'?'Researching…':'Find new problems'}</button></div><div className="divider"/><h3>Discovery review queue <span className="pill">{discovered.filter(d=>d.status==='pending_review'||d.status==='duplicate_candidate').length} pending</span></h3>{discovered.length===0?<p className="empty">No discoveries yet. Research a topic to find candidate problems.</p>:discovered.map(d=><div className="finding" key={d.id}><div className="row"><span className="pill">{d.status}</span><span className="mini">{d.streamId} · {d.categoryId}</span></div><label className="field">Problem statement<textarea rows={2} disabled={!['pending_review','duplicate_candidate'].includes(d.status)} value={drafts[d.id]??d.statement} onChange={e=>setDrafts(v=>({...v,[d.id]:e.target.value}))}/></label><p className="muted">{d.rationale}</p>{d.evidenceUrls?.map((u:string)=><a key={u} href={u} target="_blank" rel="noreferrer">{u} <ExternalLink size={12}/></a>)}{(()=>{let m:any[]=[];try{m=JSON.parse(d.neighborsJson||'{}').matches||[]}catch{}return <details><summary>Most similar existing problems</summary>{m.slice(0,5).map(x=><p key={x.id}>#{x.id}: {x.description} · semantic {x.semanticSimilarity??'—'}</p>)}</details>})()}{['pending_review','duplicate_candidate'].includes(d.status)&&<div className="button-row"><button className="primary" disabled={!!busy} onClick={()=>run('approve',async()=>{const o=await post(`/discoveries/${d.id}/approve`,{statement:drafts[d.id]??d.statement});setNotice(`Approved new problem #${o.id}`);await loadDiscoveries();await reloadStats();await loadProblems()})}>Approve distinct problem</button><button className="secondary" disabled={!!busy} onClick={()=>run('reject',async()=>{await post(`/discoveries/${d.id}/reject`);await loadDiscoveries()})}>Reject / duplicate</button></div>}</div>)}</div></div>}
-  {tab==='research'&&<div className="content"><div className="panel"><div className="pane-title"><span><BookOpen size={17}/> Problem record</span>{selected&&<span className="mini">#{String(selected.id).padStart(3,'0')}</span>}</div>{selected?<><h2>{selected.description}</h2><p className="muted">{selected.stream} · {selected.category}</p><div className="divider"/><h3>Research this problem</h3><p className="muted">An OpenAI web-search pass followed by validated structured extraction. Findings are stored as <em>needs review</em>.</p><label className="field">Research focus<textarea value={focus} rows={2} onChange={e=>setFocus(e.target.value)}/></label><button disabled={!!busy} className="primary" onClick={()=>run('research',async()=>{const r=await post(`/problems/${selected.id}/research`,{focus});setNotice(`Saved ${r.saved} sourced findings. Please review sources.`);setSelected(await api('/problems/'+selected.id))})}><FlaskConical size={16}/>{busy==='research'?'Researching (may take a minute)…':'Research with OpenAI'}</button><div className="divider"/><h3>Generate concepts for this problem</h3><p className="muted">Create distinct concept hypotheses from this problem and available evidence. Drafts are saved locally but are not automatically added to Solutions.</p><label className="field">Optional design direction<textarea rows={2} value={conceptDirection} onChange={e=>setConceptDirection(e.target.value)} placeholder="e.g. affordable mechanical solutions, low maintenance, dignified user control"/></label><div className="button-row"><select value={conceptCount} onChange={e=>setConceptCount(Number(e.target.value))}>{[2,3,4,5,6].map(n=><option value={n} key={n}>{n} concepts</option>)}</select><button className="primary" disabled={!!busy} onClick={()=>run('generate',async()=>{const out=await post(`/problems/${selected.id}/concepts/generate`,{count:conceptCount,direction:conceptDirection});setConcepts(await api(`/problems/${selected.id}/concepts`));setNotice(`Generated ${out.concepts.length} concept drafts; review and save only the promising ones.`)})}><Sparkles size={16}/>{busy==='generate'?'Generating…':'Generate concepts'}</button></div><h3>Generated drafts <span className="pill">{concepts.length}</span></h3>{concepts.map(c=><div className="finding" key={c.id}><div className="row"><span className="pill">{c.status}</span><span className="mini">{c.details?.approach}</span></div><label className="field">Concept name<input disabled={c.status==='saved'} value={conceptEdits[c.id]?.name??c.name} onChange={e=>setConceptEdits(v=>({...v,[c.id]:{name:e.target.value,description:v[c.id]?.description??c.description}}))}/></label><label className="field">Concept description<textarea rows={3} disabled={c.status==='saved'} value={conceptEdits[c.id]?.description??c.description} onChange={e=>setConceptEdits(v=>({...v,[c.id]:{name:v[c.id]?.name??c.name,description:e.target.value}}))}/></label><details><summary>Assumptions, risks and research gaps</summary><p><strong>Mechanism:</strong> {c.details?.mechanism}</p><p><strong>Potential differentiation:</strong> {c.details?.differentiation_hypothesis}</p>{(['assumptions','potential_risks','feasibility_questions','evidence_gaps'] as const).map(k=><div key={k}><strong>{k.replaceAll('_',' ')}</strong><ul>{(c.details?.[k]||[]).map((a:string,i:number)=><li key={i}>{a}</li>)}</ul></div>)}</details>{c.status==='saved'&&c.solutionId?<button className="secondary" onClick={()=>selectSol(c.solutionId!)}>Open saved solution →</button>:<button className="primary" disabled={!!busy} onClick={()=>run('saveConcept',async()=>{const edit=conceptEdits[c.id]??{name:c.name,description:c.description};const s=await post(`/concept-drafts/${c.id}/save`,edit);setConcepts(await api(`/problems/${selected.id}/concepts`));await loadSols();await reloadStats();setNotice(`Saved ${s.name} to Solutions. Run Match to library, then Evaluate.`);await selectSol(s.id)})}><Plus size={16}/> Add to Solutions</button>}</div>)}<div className="divider"/><h3>Saved research findings <span className="pill">{selected.findings?.length||0}</span></h3>{selected.findings?.length?selected.findings.map(f=><div className="finding" key={f.id}><div className="row"><span className="pill">{f.reviewStatus||'needs_review'}</span><span className="mini">{f.confidence} confidence</span></div><p>{f.claim}</p>{f.statistic&&<strong>{f.statistic}</strong>}{f.limitations&&<small>Limitations: {f.limitations}</small>}{f.url&&<a href={f.url} target="_blank" rel="noreferrer">{f.title||f.url} <ExternalLink size={12}/></a>}</div>):<p className="empty">No research saved yet. Evidence should never be assumed from the problem text alone.</p>}</>:<div className="empty">Select a problem from Explore graph to view its record and commission research.</div>}</div></div>}
-  {tab==='solutions'&&<div className="solution-layout"><div className="panel"><div className="pane-title"><span><Plus size={17}/> New concept</span></div><label className="field">Concept name<input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g., Portable object carrier"/></label><label className="field">Description<textarea rows={6} value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Describe intended user, environment, main capabilities, assumptions and limitations…"/></label><button className="primary" disabled={!!busy||name.trim().length<2||desc.trim().length<15} onClick={()=>run('create',async()=>{const s=await post('/solutions',{name,description:desc});setName('');setDesc('');await loadSols();await reloadStats();await selectSol(s.id)})}><Plus size={16}/> Save concept</button><div className="divider"/><h3>Saved concepts</h3>{sols.length?sols.map(s=><button key={s.id} className={'saved-item '+(solution?.id===s.id?'active':'')} onClick={()=>selectSol(s.id)}>{s.name}<ChevronRight size={15}/></button>):<p className="empty">No concepts yet</p>}</div><div className="panel"><div className="pane-title"><span><Lightbulb size={17}/> Problem matching</span></div>{solution?<><h2>{solution.name}</h2><p className="muted">{solution.description}</p><div className="button-row"><button className="primary" disabled={!!busy} onClick={()=>run('match',async()=>{const out=await post(`/solutions/${solution.id}/match`);setNotice(`Found ${out.matches.length} potential problem relationships.`);setSolution(await api(`/solutions/${solution.id}`))})}><Network size={16}/>{busy==='match'?'Matching…':'Match to library'}</button><button className="secondary" onClick={()=>setTab('evaluation')}><BarChart3 size={16}/> Evaluate</button></div><div className="divider"/><h3>Potential problem matches <span className="pill">{solution.matches?.length||0}</span></h3>{solution.matches?.length?solution.matches.map(m=><div className="match" key={m.problemId}><div className="row"><strong>#{m.problemId} · {m.description}</strong><span className="score">{m.relevance}% relevance</span></div><p>{m.rationale}</p><span className="mini">{m.relationship} · {m.confidence} confidence · not proven effectiveness</span><button className="text-link" onClick={()=>selectProblem(m.problemId)}>Inspect problem →</button></div>):<p className="empty">Run matching to rank potential relationships. Matches are hypotheses until evaluated.</p>}</>:<p className="empty">Create or select a solution to match it against the problem library.</p>}</div></div>}
-  {tab==='evaluation'&&<div className="content"><div className="panel"><div className="pane-title"><span><BarChart3 size={17}/> Research-connected concept evaluation</span></div><label className="field">Select concept<select value={solution?.id||''} onChange={e=>{if(e.target.value)selectSol(e.target.value).then(()=>setTab('evaluation'))}}><option value="">Choose concept</option>{sols.map(s=><option value={s.id} key={s.id}>{s.name}</option>)}</select></label>{solution?<><h2>{solution.name}</h2><p className="muted">{solution.matches?.length||0} linked problem matches</p><button className="primary" disabled={!!busy} onClick={()=>run('evaluate',async()=>{const r=await post(`/solutions/${solution.id}/evaluate`);setEvalData(r.data);setNotice(`Saved evaluation; ${r.evidenceCount} research claims available.`);setSolution(await api(`/solutions/${solution.id}`))})}>{busy==='evaluate'?'Evaluating…':'Generate structured evaluation'}</button>{evalData?<><div className="evalchart"><ResponsiveContainer width="100%" height={280}><RadarChart data={evalData.factors.map(f=>({factor:f.factor[0].toUpperCase()+f.factor.slice(1),score:f.score||0}))}><PolarGrid/><PolarAngleAxis dataKey="factor" tick={{fill:'#a2b1bb',fontSize:12}}/><Tooltip/><Radar dataKey="score" stroke="#8fc4ae" fill="#8fc4ae" fillOpacity={0.25} /></RadarChart></ResponsiveContainer></div><p className="muted">{evalData.summary}</p><div className="factor-grid">{evalData.factors.map(f=><div className="factor" key={f.factor}><div className="row"><strong>{f.factor}</strong><span className="score">{f.score===null?'Unrated':f.score+'/5'}</span></div><small>{f.confidence} confidence</small><p>{f.rationale}</p>{f.unanswered_questions.length>0&&<details><summary>Open questions ({f.unanswered_questions.length})</summary>{f.unanswered_questions.map((q,i)=><p key={i}>{q}</p>)}</details>}</div>)}</div><h3>Key assumptions</h3><ul>{evalData.key_assumptions.map((x,i)=><li key={i}>{x}</li>)}</ul><h3>Risks</h3><ul>{evalData.risks.map((x,i)=><li key={i}>{x}</li>)}</ul><h3>Next research</h3><ul>{evalData.next_research.map((x,i)=><li key={i}>{x}</li>)}</ul></>:<p className="empty">No assessment yet. Missing evidence should produce unknown ratings, not invented precision.</p>}</>:<p className="empty">Create a concept in the Solutions workspace first.</p>}</div></div>}
-  <footer>PROBLEM EXPLORER · Structured research is provisional until sources are manually reviewed. Do not use as medical guidance.</footer>
- </main></div>
-}
 createRoot(document.getElementById('root')!).render(<Root/>);
