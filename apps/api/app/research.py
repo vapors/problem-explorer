@@ -95,30 +95,84 @@ def get_problem(tid:str,pid:int):
       RETURN f.id AS id,f.claim AS claim,f.population AS population,f.statistic AS statistic,f.limitations AS limitations,
              f.confidence AS confidence,f.reviewStatus AS reviewStatus,src.url AS url,src.title AS title
       ORDER BY f.createdAt DESC LIMIT 100''',tid=tid,pid=pid,owner=me())
-    out['researchRuns']=query('MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})-[:RESEARCHES]->(p:Problem {id:$pid}) RETURN r.id AS id,r.focus AS focus,r.gaps AS gaps,r.createdAt AS createdAt ORDER BY r.createdAt DESC LIMIT 20',tid=tid,pid=pid,owner=me())
+    out['researchRuns']=query('''MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})-[:RESEARCHES]->(p:Problem {id:$pid,targetId:$tid})
+      OPTIONAL MATCH (r)-[:PRODUCED]->(f:Finding {targetId:$tid,ownerId:$owner})
+      RETURN r.id AS id,r.focus AS focus,r.gaps AS gaps,toString(r.createdAt) AS createdAt,
+             count(DISTINCT f) AS findingCount
+      ORDER BY createdAt DESC LIMIT 40''',tid=tid,pid=pid,owner=me())
     out['conceptDrafts']=query('MATCH (b:ConceptBatch {targetId:$tid,ownerId:$owner})-[:GENERATED_FOR]->(p:Problem {id:$pid}) MATCH (b)-[:PROPOSED]->(d:ConceptDraft) RETURN d.id AS id,d.name AS name,d.status AS status',tid=tid,pid=pid,owner=me())
     return out
 
+@router.get('/research/activity')
+def research_activity(tid:str):
+    """Return independently persisted, current-user research for one target."""
+    accessible(tid)
+    owner=me()
+    totals=query('''MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})
+      -[:RESEARCHES]->(p:Problem {targetId:$tid})
+      MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p)
+      OPTIONAL MATCH (r)-[:PRODUCED]->(f:Finding {targetId:$tid,ownerId:$owner})
+      RETURN count(DISTINCT r) AS runCount, count(DISTINCT f) AS findingCount,
+             count(DISTINCT CASE WHEN f.reviewStatus='reviewed' THEN f END) AS reviewedCount''',tid=tid,owner=owner)
+    recent=query('''MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})
+      -[:RESEARCHES]->(p:Problem {targetId:$tid})
+      MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p)
+      OPTIONAL MATCH (r)-[:PRODUCED]->(f:Finding {targetId:$tid,ownerId:$owner})
+      RETURN r.id AS id, p.id AS problemId, p.description AS problem,
+             r.focus AS focus, toString(r.createdAt) AS createdAt,
+             count(DISTINCT f) AS findingCount
+      ORDER BY createdAt DESC LIMIT 20''',tid=tid,owner=owner)
+    return {'targetId':tid,'ownerId':owner,
+            'runCount':totals[0]['runCount'] if totals else 0,
+            'findingCount':totals[0]['findingCount'] if totals else 0,
+            'reviewedCount':totals[0]['reviewedCount'] if totals else 0,
+            'recentRuns':recent}
+
 @router.post('/problems/{pid}/research')
 def research_problem(tid:str,pid:int,body:ResearchRequest):
+    """Commit the run and all findings atomically, after checking current ownership.
+
+    Never acknowledge a research save if Neo4j did not commit its entire result.
+    """
     accessible(tid,True)
     p=problem_row(tid,pid)
+    owner=me()
     try:result=ai.research(pid,p['description'],body.focus)
     except Exception as exc:raise HTTPException(502,'Research provider failed; consult server logs') from exc
     rid=str(uuid.uuid4())
-    execute('''MATCH (p:Problem {id:$pid,targetId:$tid}) CREATE (r:ResearchRun {id:$rid,ownerId:$owner,targetId:$tid,
-      focus:$focus,gaps:$gaps,conflicting:$conflicting,questions:$questions,createdAt:datetime()}) CREATE (r)-[:RESEARCHES]->(p)''',
-        tid=tid,pid=pid,rid=rid,owner=me(),focus=body.focus,gaps=result.gaps,conflicting=result.conflicting_evidence,questions=result.follow_up_questions)
-    for finding in result.findings:
-        data=finding.model_dump();fid=str(uuid.uuid4())
-        execute('''MATCH (p:Problem {id:$pid,targetId:$tid}),(r:ResearchRun {id:$rid,targetId:$tid})
-           MERGE (src:Source {url:$url}) SET src.title=$title,src.publisher=$publisher,src.publishedAt=$date
-           CREATE (f:Finding {id:$fid,targetId:$tid,ownerId:$owner,claim:$claim,population:$population,
-             statistic:$statistic,limitations:$limitations,confidence:$confidence,reviewStatus:'needs_review',createdAt:datetime()})
-           CREATE (f)-[:ABOUT]->(p) CREATE (f)-[:DERIVED_FROM]->(src) CREATE (r)-[:PRODUCED]->(f)''',
-           tid=tid,pid=pid,rid=rid,fid=fid,owner=me(),url=data['url'],title=data['title'],publisher=data['publisher'],date=data['published_at'],
-           claim=data['claim'],population=data['population'],statistic=data['statistic'],limitations=data['limitations'],confidence=data['confidence'])
-    return {'researchRunId':rid,'saved':len(result.findings),'data':result.model_dump()}
+    findings=[{'id':str(uuid.uuid4()),**f.model_dump()} for f in result.findings]
+    with driver().session(database=os.getenv('NEO4J_DATABASE','neo4j')) as session:
+        def save(tx):
+            permitted=tx.run('''MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)
+                -[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid,targetId:$tid})
+                RETURN p.id AS id LIMIT 1''',tid=tid,owner=owner,pid=pid).single()
+            if not permitted:
+                raise HTTPException(403,'Your write access to this problem has changed')
+            tx.run('''MATCH (p:Problem {id:$pid,targetId:$tid})
+                CREATE (r:ResearchRun {id:$rid,ownerId:$owner,targetId:$tid,
+                  focus:$focus,gaps:$gaps,conflicting:$conflicting,
+                  questions:$questions,createdAt:datetime()})
+                CREATE (r)-[:RESEARCHES]->(p)''',
+                tid=tid,pid=pid,rid=rid,owner=owner,focus=body.focus,
+                gaps=result.gaps,conflicting=result.conflicting_evidence,
+                questions=result.follow_up_questions).consume()
+            if findings:
+                tx.run('''UNWIND $findings AS item
+                    MATCH (r:ResearchRun {id:$rid,targetId:$tid,ownerId:$owner})
+                    MATCH (p:Problem {id:$pid,targetId:$tid})
+                    MERGE (src:Source {url:item.url})
+                    SET src.title=item.title,src.publisher=item.publisher,
+                        src.publishedAt=item.published_at
+                    CREATE (f:Finding {id:item.id,targetId:$tid,ownerId:$owner,
+                      claim:item.claim,population:item.population,
+                      statistic:item.statistic,limitations:item.limitations,
+                      confidence:item.confidence,reviewStatus:'needs_review',createdAt:datetime()})
+                    CREATE (f)-[:ABOUT]->(p) CREATE (f)-[:DERIVED_FROM]->(src)
+                    CREATE (r)-[:PRODUCED]->(f)''',
+                    tid=tid,owner=owner,pid=pid,rid=rid,findings=findings).consume()
+        session.execute_write(save)
+    return {'researchRunId':rid,'saved':len(findings),'ownerId':owner,
+            'targetId':tid,'data':result.model_dump()}
 
 class FindingReview(BaseModel):
     status:str=Field(pattern='^(needs_review|reviewed|rejected)$')

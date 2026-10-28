@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import * as am5 from '@amcharts/amcharts5';
 import * as am5hierarchy from '@amcharts/amcharts5/hierarchy';
 import {Maximize2, ZoomIn, ZoomOut} from 'lucide-react';
+import {layoutGraphLabel} from './networkLabels';
 
 export type TreeNode = {
   id: string;
@@ -11,6 +12,10 @@ export type TreeNode = {
   value?: number;
   recordId?: number;
   crossLinks?: string[];
+  displayName?: string;
+  labelRadius?: number;
+  labelFontSize?: number;
+  labelWidth?: number;
 };
 
 type Theme = 'light' | 'dark';
@@ -63,14 +68,19 @@ export default function NetworkCanvas({targetId, refreshKey, theme, onProblemNod
       }));
       zoomRef.current = zoom;
       const series = zoom.contents.children.push(am5hierarchy.ForceDirected.new(root, {
-        valueField: 'value', categoryField: 'name', childDataField: 'children',
+        valueField: 'value', categoryField: 'displayName', childDataField: 'children',
         idField: 'id', linkWithField: 'crossLinks',
         centerStrength: 0.5, manyBodyStrength: -20, nodePadding: 15,
-        minRadius: 10, maxRadius: 40,
+        minRadius: 34, maxRadius: 83,
         singleBranchOnly: false, initialDepth: 1, downDepth: 1, topDepth: 0,
       }));
       series.nodes.template.setAll({
         tooltipText: '{category}', cursorOverStyle: 'pointer',
+      });
+      // Full catalog text is preserved in hover tooltips, not abbreviated previews.
+      series.nodes.template.adapters.add('tooltipText', (value, node) => {
+        const data = node.dataItem?.dataContext as TreeNode | undefined;
+        return data?.name || value;
       });
       series.nodes.template.adapters.add('toggleKey', (key, target) => {
         const data = target.dataItem?.dataContext as TreeNode | undefined;
@@ -80,27 +90,25 @@ export default function NetworkCanvas({targetId, refreshKey, theme, onProblemNod
         fill: am5.color(color.node), stroke: am5.color(color.stroke),
         strokeWidth: 1.5, fillOpacity: 0.98,
       });
-      // Circle radii are determined by semantic role, rather than arbitrary
-      // label length or overall branch population.
+      // Bubble and font size grow modestly with title length; never alter data.
       series.circles.template.adapters.add('radius', (radius, target) => {
         const data = target.dataItem?.dataContext as TreeNode | undefined;
-        if (data?.type === 'target') return 37;
-        if (data?.type === 'stream') return 27;
-        if (data?.type === 'category') return 19;
-        if (data?.type === 'problem') return 11;
-        return radius;
+        return data?.labelRadius ?? radius;
       });
       series.outerCircles.template.setAll({
         stroke: am5.color(color.stroke), strokeWidth: 1.5, strokeOpacity: 0.9,
       });
       series.labels.template.setAll({
-        fill: am5.color(color.text), fontSize: 11, oversizedBehavior: 'truncate',
-        maxWidth: 210, textAlign: 'center',
+        fill: am5.color(color.text), fontSize: 11, textAlign: 'center',
+        oversizedBehavior: 'wrap', maxWidth: 105,
       });
-      series.labels.template.adapters.add('text', (value, label) => {
+      series.labels.template.adapters.add('fontSize', (value, label) => {
         const data = label.dataItem?.dataContext as TreeNode | undefined;
-        const text = data?.name || value || '';
-        return data?.type === 'problem' && text.length > 54 ? `${text.slice(0, 53)}…` : text;
+        return data?.labelFontSize ?? value;
+      });
+      series.labels.template.adapters.add('maxWidth', (value, label) => {
+        const data = label.dataItem?.dataContext as TreeNode | undefined;
+        return data?.labelWidth ?? value;
       });
       series.links.template.setAll({
         stroke: am5.color(color.stroke), strokeOpacity: 0.26, strokeWidth: 1,
@@ -117,8 +125,12 @@ export default function NetworkCanvas({targetId, refreshKey, theme, onProblemNod
       // only those otherwise valueless branches a minimal display value.
       const withEmptyBranchValues = (node: TreeNode): TreeNode => {
         const children = node.children?.map(withEmptyBranchValues);
-        return children?.length ? {...node, children} :
-          node.type === 'problem' ? node : {...node, children: [], value: 100};
+        const label = layoutGraphLabel(node.name, node.type);
+        const presentation = {displayName: label.text, labelRadius: label.radius,
+          labelFontSize: label.fontSize, labelWidth: label.maxWidth};
+        if (children?.length) return {...node, ...presentation, children};
+        return node.type === 'problem' ? {...node, ...presentation} :
+          {...node, ...presentation, children: [], value: 100};
       };
       series.data.setAll([withEmptyBranchValues(tree)]);
       if (series.dataItems.length) series.set('selectedDataItem', series.dataItems[0]);

@@ -2,7 +2,7 @@ import React from 'react';
 import {Rnd} from 'react-rnd';
 import {ChevronDown, ChevronUp, X} from 'lucide-react';
 
-export type PanelId = 'navigation' | 'overview' | 'directory' | 'problems' | 'research' |
+export type PanelId = 'navigation' | 'targetExplorer' | 'overview' | 'directory' | 'problems' | 'research' |
   'discovery' | 'concepts' | 'matching' | 'evaluation' | 'manage' | 'admin';
 export type PanelLayout = {
   isOpen: boolean;
@@ -12,8 +12,9 @@ export type PanelLayout = {
 export type PanelLayouts = Record<PanelId, PanelLayout>;
 
 export const initialLayouts: PanelLayouts = {
-  navigation: {isOpen: true, isCollapsed: false, x: 18, y: 85, width: 252, height: 640, z: 10},
-  overview: {isOpen: true, isCollapsed: false, x: 288, y: 85, width: 380, height: 410, z: 11},
+  navigation: {isOpen: true, isCollapsed: false, x: 18, y: 85, width: 238, height: 610, z: 10},
+  targetExplorer: {isOpen: true, isCollapsed: false, x: 270, y: 85, width: 420, height: 650, z: 11},
+  overview: {isOpen: false, isCollapsed: false, x: 706, y: 85, width: 380, height: 410, z: 12},
   directory: {isOpen: false, isCollapsed: false, x: 310, y: 105, width: 650, height: 580, z: 12},
   problems: {isOpen: false, isCollapsed: false, x: 310, y: 100, width: 690, height: 650, z: 12},
   research: {isOpen: false, isCollapsed: false, x: 330, y: 95, width: 720, height: 700, z: 12},

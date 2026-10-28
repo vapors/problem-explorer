@@ -1,9 +1,24 @@
+# Secrets / runtime state (never version or publish)
 .env
 .env.*
 !.env.example
-**/node_modules/
-**/dist/
+apps/api/data/
+*.sqlite3
+*.sqlite3-*
+*.db
+*.dump
+*.log
+
+# Python, Node and intermediate build outputs
 **/.venv/
+**/.testvenv/
 **/__pycache__/
 *.pyc
+**/node_modules/
+**/dist/
+**/.npm-cache/
+**/.pytest_cache/
 .DS_Store
+
+# Deploy packages are versioned release artifacts, not source files
+Problem-Explorer-v*.zip

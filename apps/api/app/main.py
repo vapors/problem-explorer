@@ -22,7 +22,7 @@ async def lifespan(app):
     yield
     jobs.stop()
 
-app = FastAPI(title='Problem Explorer API', version='0.8.0', lifespan=lifespan)
+app = FastAPI(title='Problem Explorer API', version='0.8.1', lifespan=lifespan)
 app.include_router(auth.router)
 
 @app.middleware('http')
