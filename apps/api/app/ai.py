@@ -8,8 +8,8 @@ def client():
     if not os.getenv('OPENAI_API_KEY'): raise ValueError('OPENAI_API_KEY is not configured. Add it to your server .env file.')
     return OpenAI(api_key=os.environ['OPENAI_API_KEY'],timeout=90,max_retries=1)
 
-def parse_structured(schema, prompt):
-    response=client().responses.parse(model=os.getenv('OPENAI_STRUCTURED_MODEL','gpt-4.1-mini'),instructions=SYSTEM,input=prompt,text_format=schema)
+def parse_structured(schema, prompt, *, model=None):
+    response=client().responses.parse(model=model or os.getenv('OPENAI_STRUCTURED_MODEL','gpt-4.1-mini'),instructions=SYSTEM,input=prompt,text_format=schema)
     if response.output_parsed is None: raise ValueError('OpenAI did not return a usable structured response')
     return response.output_parsed
 
@@ -35,12 +35,38 @@ def match(concept, candidates):
     obj.matches=[x for x in obj.matches if x.problem_id in allowed and x.relationship!='none']
     return obj
 
-def evaluate(concept, matches, findings):
-    prompt=f'''Evaluate this UNTESTED design concept with five factors exactly once each: desirability, feasibility, viability, impact, coverage. Do not substitute speculation for empirical evidence. For each score 1=poor through 5=excellent, use null if insufficient evidence. Confidence must track evidence strength. Factor rating is a provisional structured judgment, not a scientifically validated measurement. Support evidence_urls only with URLs in the supplied findings. Distinguish relevance from effectiveness.
-CONCEPT:\n{concept}\nLINKED PROBLEM MATCHES:\n{matches}\nSOURCED RESEARCH:\n{findings[:30000]}'''
+def evaluate(concept, matches, findings, mode: str = 'evidence'):
+    if mode not in ('evidence','exploratory'):
+        raise ValueError('Invalid evaluation mode')
+    method = (
+        'EVIDENCE: Assign scores ONLY with sourced evidence. Otherwise score=null and basis=unknown.'
+        if mode == 'evidence' else
+        'EXPLORATORY: Allow provisional 1-10 estimates using explicit engineering, adoption, '
+        'operational and economic assumptions. Mark inferred scores basis=inference with '
+        'unanswered questions. Do not claim those are observed outcomes or empirical data.'
+    )
+    prompt=f'''Evaluate an UNTESTED concept against exactly five factors: desirability,
+    feasibility, viability, impact, coverage. One to ten means very poor to excellent. Score 1 is a real negative assessment, NEVER a synonym for unavailable evidence; return null when unknown.
+    Factor rubrics: desirability=user needs, preferences and adoption; feasibility=
+    engineering, reliability, safety and delivery; viability=production, service and
+    sustainability; impact=plausible meaningful benefit; coverage=how many matched
+    unmet needs are addressed, NOT population prevalence. Confidence tracks source
+    strength, not model fluency. Cite only URLs present in provided findings, mark
+    inferred scores clearly, never fabricate research or sources. Include basis and
+    assumptions for every factor. {method}
+    CONCEPT:\n{concept}\nLINKED PROBLEM MATCHES:\n{matches}\nSOURCED RESEARCH:\n{findings[:30000]}'''
     result=parse_structured(EvaluationResult,prompt)
     expected={'desirability','feasibility','viability','impact','coverage'}
-    if {x.factor for x in result.factors}!=expected or len(result.factors)!=5: raise ValueError('Evaluation must contain exactly five distinct factor ratings')
+    if {x.factor for x in result.factors}!=expected or len(result.factors)!=5:
+        raise ValueError('Evaluation must contain exactly five distinct factor ratings')
+    for factor in result.factors:
+        if factor.score is None:
+            factor.basis='unknown'
+        elif mode=='evidence' and factor.basis!='evidence':
+            factor.score=None
+            factor.basis='unknown'
+        elif mode=='exploratory' and factor.basis=='unknown':
+            factor.basis='inference'
     return result
 
 

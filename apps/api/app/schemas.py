@@ -36,11 +36,13 @@ class MatchingResult(BaseModel):
 
 class FactorRating(BaseModel):
     factor: Literal['desirability','feasibility','viability','impact','coverage']
-    score: int | None = Field(description='1–5 only if evidence supports a rating; null if insufficient evidence',ge=1,le=5)
+    score: int | None = Field(description='1–10 only if evidence supports a rating; null if insufficient evidence',ge=1,le=10)
     confidence: Confidence
     rationale: str
     evidence_urls: list[str]
     unanswered_questions: list[str]
+    basis: Literal['evidence','inference','unknown'] = 'unknown'
+    assumptions: list[str] = Field(default_factory=list)
 
 class EvaluationResult(BaseModel):
     summary: str

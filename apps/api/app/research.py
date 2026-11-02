@@ -6,6 +6,7 @@ import json, os, re, uuid
 from difflib import SequenceMatcher
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from typing import Literal
 from .db import query, execute, driver
 from .targets import accessible, me
 from . import ai, auth, jobs, semantic
@@ -20,6 +21,7 @@ class ConceptRequest(BaseModel):
 class ConceptInput(BaseModel):
     name:str=Field(min_length=3,max_length=140)
     description:str=Field(min_length=40,max_length=5000)
+    originProblemId:int|None=Field(default=None,ge=1)
 class SearchRequest(BaseModel):
     text:str=Field(min_length=3,max_length=1000)
     mode:str=Field(default='hybrid',pattern='^(exact|hybrid|semantic)$')
@@ -47,7 +49,7 @@ def problem_row(tid:str,pid:int):
 
 def concept_row(tid:str,sid:str):
     accessible(tid)
-    rows=query('MATCH (s:Solution {id:$sid,targetId:$tid,ownerId:$owner}) RETURN s.id AS id,s.name AS name,s.description AS description',tid=tid,sid=sid,owner=me())
+    rows=query("MATCH (s:Solution {id:$sid,targetId:$tid,ownerId:$owner}) WHERE coalesce(s.reviewStatus,'active')='active' RETURN s.id AS id,s.name AS name,s.description AS description",tid=tid,sid=sid,owner=me())
     if not rows:raise HTTPException(404,'Concept not found in selected target')
     return rows[0]
 
@@ -75,8 +77,9 @@ def stats(tid:str):
     rows=query('''MATCH (t:Target {id:$tid}) OPTIONAL MATCH (t)-[:HAS_STREAM]->(s:Stream)
       OPTIONAL MATCH (s)-[:CONTAINS]->(c:Category) OPTIONAL MATCH (c)-[:CONTAINS]->(p:Problem)
       RETURN count(DISTINCT s) AS streams,count(DISTINCT c) AS categories,count(DISTINCT p) AS problems''',tid=tid)
-    solutions=query('MATCH (s:Solution {targetId:$tid,ownerId:$owner}) RETURN count(s) AS n',tid=tid,owner=me())[0]['n']
-    return {**rows[0],'solutions':solutions}
+    solutions=query("MATCH (s:Solution {targetId:$tid,ownerId:$owner}) WHERE coalesce(s.reviewStatus,'active')='active' RETURN count(s) AS n",tid=tid,owner=me())[0]['n']
+    rejected=query("MATCH (s:Solution {targetId:$tid,ownerId:$owner,reviewStatus:'rejected'}) RETURN count(s) AS n",tid=tid,owner=me())[0]['n']
+    return {**rows[0],'solutions':solutions,'rejectedSolutions':rejected}
 
 @router.get('/problems')
 def problems(tid:str,q:str='',category:str='',limit:int=200):
@@ -95,30 +98,108 @@ def get_problem(tid:str,pid:int):
       RETURN f.id AS id,f.claim AS claim,f.population AS population,f.statistic AS statistic,f.limitations AS limitations,
              f.confidence AS confidence,f.reviewStatus AS reviewStatus,src.url AS url,src.title AS title
       ORDER BY f.createdAt DESC LIMIT 100''',tid=tid,pid=pid,owner=me())
-    out['researchRuns']=query('MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})-[:RESEARCHES]->(p:Problem {id:$pid}) RETURN r.id AS id,r.focus AS focus,r.gaps AS gaps,r.createdAt AS createdAt ORDER BY r.createdAt DESC LIMIT 20',tid=tid,pid=pid,owner=me())
+    out['researchRuns']=query('''MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})-[:RESEARCHES]->(p:Problem {id:$pid,targetId:$tid})
+      OPTIONAL MATCH (r)-[:PRODUCED]->(f:Finding {targetId:$tid,ownerId:$owner})
+      RETURN r.id AS id,r.focus AS focus,r.gaps AS gaps,toString(r.createdAt) AS createdAt,
+             count(DISTINCT f) AS findingCount
+      ORDER BY createdAt DESC LIMIT 40''',tid=tid,pid=pid,owner=me())
+    out['solutions']=query('''MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid})
+      MATCH (s:Solution {targetId:$tid,ownerId:$owner})-[:INSPIRED_BY]->(p)
+      WHERE coalesce(s.reviewStatus,'active')='active'
+      RETURN s.id AS id,s.name AS name,s.description AS description ORDER BY s.createdAt DESC''',tid=tid,pid=pid,owner=me())
     out['conceptDrafts']=query('MATCH (b:ConceptBatch {targetId:$tid,ownerId:$owner})-[:GENERATED_FOR]->(p:Problem {id:$pid}) MATCH (b)-[:PROPOSED]->(d:ConceptDraft) RETURN d.id AS id,d.name AS name,d.status AS status',tid=tid,pid=pid,owner=me())
     return out
 
+@router.get('/research/activity')
+def research_activity(tid:str):
+    """Return independently persisted, current-user research for one target."""
+    accessible(tid)
+    owner=me()
+    totals=query('''MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})
+      -[:RESEARCHES]->(p:Problem {targetId:$tid})
+      MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p)
+      OPTIONAL MATCH (r)-[:PRODUCED]->(f:Finding {targetId:$tid,ownerId:$owner})
+      RETURN count(DISTINCT r) AS runCount, count(DISTINCT f) AS findingCount,
+             count(DISTINCT CASE WHEN f.reviewStatus='reviewed' THEN f END) AS reviewedCount,
+             count(DISTINCT CASE WHEN f IS NOT NULL AND (f.reviewStatus IS NULL OR f.reviewStatus='needs_review') THEN f END) AS needsReviewCount,
+             count(DISTINCT CASE WHEN f.reviewStatus='rejected' THEN f END) AS rejectedCount''',tid=tid,owner=owner)
+    recent=query('''MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})
+      -[:RESEARCHES]->(p:Problem {targetId:$tid})
+      MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p)
+      OPTIONAL MATCH (r)-[:PRODUCED]->(f:Finding {targetId:$tid,ownerId:$owner})
+      RETURN r.id AS id, p.id AS problemId, p.description AS problem,
+             r.focus AS focus, toString(r.createdAt) AS createdAt,
+             count(DISTINCT f) AS findingCount
+      ORDER BY createdAt DESC LIMIT 20''',tid=tid,owner=owner)
+    return {'targetId':tid,'ownerId':owner,
+            'runCount':totals[0]['runCount'] if totals else 0,
+            'findingCount':totals[0]['findingCount'] if totals else 0,
+            'reviewedCount':totals[0]['reviewedCount'] if totals else 0,
+            'needsReviewCount':totals[0].get('needsReviewCount', 0) if totals else 0,
+            'rejectedCount':totals[0].get('rejectedCount', 0) if totals else 0,
+            'recentRuns':recent}
+
+@router.get('/research/rejected-findings')
+def rejected_findings(tid:str,skip:int=0,limit:int=100):
+    """Read-only recovery queue scoped to the authenticated viewer and active Target.
+
+    Status edits use the existing owner-only /findings/{fid} endpoint.
+    """
+    accessible(tid)
+    return query('''MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem)
+      MATCH (f:Finding {targetId:$tid,ownerId:$owner,reviewStatus:'rejected'})-[:ABOUT]->(p)
+      OPTIONAL MATCH (f)-[:DERIVED_FROM]->(src:Source)
+      RETURN f.id AS id, p.id AS problemId, p.description AS problem,
+             f.claim AS claim,f.statistic AS statistic,f.limitations AS limitations,
+             src.title AS title,src.url AS url, toString(f.reviewedAt) AS rejectedAt
+      ORDER BY rejectedAt DESC, id SKIP $skip LIMIT $limit''',
+      tid=tid,owner=me(),skip=max(0,skip),limit=min(200,max(1,limit)))
+
 @router.post('/problems/{pid}/research')
 def research_problem(tid:str,pid:int,body:ResearchRequest):
+    """Commit the run and all findings atomically, after checking current ownership.
+
+    Never acknowledge a research save if Neo4j did not commit its entire result.
+    """
     accessible(tid,True)
     p=problem_row(tid,pid)
+    owner=me()
     try:result=ai.research(pid,p['description'],body.focus)
     except Exception as exc:raise HTTPException(502,'Research provider failed; consult server logs') from exc
     rid=str(uuid.uuid4())
-    execute('''MATCH (p:Problem {id:$pid,targetId:$tid}) CREATE (r:ResearchRun {id:$rid,ownerId:$owner,targetId:$tid,
-      focus:$focus,gaps:$gaps,conflicting:$conflicting,questions:$questions,createdAt:datetime()}) CREATE (r)-[:RESEARCHES]->(p)''',
-        tid=tid,pid=pid,rid=rid,owner=me(),focus=body.focus,gaps=result.gaps,conflicting=result.conflicting_evidence,questions=result.follow_up_questions)
-    for finding in result.findings:
-        data=finding.model_dump();fid=str(uuid.uuid4())
-        execute('''MATCH (p:Problem {id:$pid,targetId:$tid}),(r:ResearchRun {id:$rid,targetId:$tid})
-           MERGE (src:Source {url:$url}) SET src.title=$title,src.publisher=$publisher,src.publishedAt=$date
-           CREATE (f:Finding {id:$fid,targetId:$tid,ownerId:$owner,claim:$claim,population:$population,
-             statistic:$statistic,limitations:$limitations,confidence:$confidence,reviewStatus:'needs_review',createdAt:datetime()})
-           CREATE (f)-[:ABOUT]->(p) CREATE (f)-[:DERIVED_FROM]->(src) CREATE (r)-[:PRODUCED]->(f)''',
-           tid=tid,pid=pid,rid=rid,fid=fid,owner=me(),url=data['url'],title=data['title'],publisher=data['publisher'],date=data['published_at'],
-           claim=data['claim'],population=data['population'],statistic=data['statistic'],limitations=data['limitations'],confidence=data['confidence'])
-    return {'researchRunId':rid,'saved':len(result.findings),'data':result.model_dump()}
+    findings=[{'id':str(uuid.uuid4()),**f.model_dump()} for f in result.findings]
+    with driver().session(database=os.getenv('NEO4J_DATABASE','neo4j')) as session:
+        def save(tx):
+            permitted=tx.run('''MATCH (t:Target {id:$tid,ownerId:$owner})-[:HAS_STREAM]->(:Stream)
+                -[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid,targetId:$tid})
+                RETURN p.id AS id LIMIT 1''',tid=tid,owner=owner,pid=pid).single()
+            if not permitted:
+                raise HTTPException(403,'Your write access to this problem has changed')
+            tx.run('''MATCH (p:Problem {id:$pid,targetId:$tid})
+                CREATE (r:ResearchRun {id:$rid,ownerId:$owner,targetId:$tid,
+                  focus:$focus,gaps:$gaps,conflicting:$conflicting,
+                  questions:$questions,createdAt:datetime()})
+                CREATE (r)-[:RESEARCHES]->(p)''',
+                tid=tid,pid=pid,rid=rid,owner=owner,focus=body.focus,
+                gaps=result.gaps,conflicting=result.conflicting_evidence,
+                questions=result.follow_up_questions).consume()
+            if findings:
+                tx.run('''UNWIND $findings AS item
+                    MATCH (r:ResearchRun {id:$rid,targetId:$tid,ownerId:$owner})
+                    MATCH (p:Problem {id:$pid,targetId:$tid})
+                    MERGE (src:Source {url:item.url})
+                    SET src.title=item.title,src.publisher=item.publisher,
+                        src.publishedAt=item.published_at
+                    CREATE (f:Finding {id:item.id,targetId:$tid,ownerId:$owner,
+                      claim:item.claim,population:item.population,
+                      statistic:item.statistic,limitations:item.limitations,
+                      confidence:item.confidence,reviewStatus:'needs_review',createdAt:datetime()})
+                    CREATE (f)-[:ABOUT]->(p) CREATE (f)-[:DERIVED_FROM]->(src)
+                    CREATE (r)-[:PRODUCED]->(f)''',
+                    tid=tid,owner=owner,pid=pid,rid=rid,findings=findings).consume()
+        session.execute_write(save)
+    return {'researchRunId':rid,'saved':len(findings),'ownerId':owner,
+            'targetId':tid,'data':result.model_dump()}
 
 class FindingReview(BaseModel):
     status:str=Field(pattern='^(needs_review|reviewed|rejected)$')
@@ -136,7 +217,7 @@ def review_finding(tid:str,fid:str,body:FindingReview):
 def generate(tid:str,pid:int,body:ConceptRequest):
     accessible(tid,True);p=get_problem(tid,pid)
     evidence=[{'claim':x['claim'],'source':x['url'],'reviewStatus':x['reviewStatus'],'limitations':x['limitations']} for x in p['findings']]
-    existing=query('MATCH (s:Solution {targetId:$tid,ownerId:$owner}) RETURN s.name AS name,s.description AS description LIMIT 25',tid=tid,owner=me())
+    existing=query("MATCH (s:Solution {targetId:$tid,ownerId:$owner}) WHERE coalesce(s.reviewStatus,'active')='active' RETURN s.name AS name,s.description AS description LIMIT 25",tid=tid,owner=me())
     try:result=ai.generate_concepts(pid,p['description'],evidence,existing,body.count,body.direction)
     except Exception as exc:raise HTTPException(502,'Concept generation failed; consult server logs') from exc
     bid=str(uuid.uuid4());items=[]
@@ -158,8 +239,11 @@ def problem_concepts(tid:str,pid:int):
     rows=query('''MATCH (b:ConceptBatch {targetId:$tid,ownerId:$owner})-[:GENERATED_FOR]->(p:Problem {id:$pid})
       MATCH (b)-[:PROPOSED]->(d:ConceptDraft) OPTIONAL MATCH (d)-[:PROMOTED_TO]->(s:Solution)
       RETURN d.id AS id,d.name AS name,d.description AS description,d.payload AS payload,d.status AS status,
-             s.id AS solutionId ORDER BY d.createdAt DESC LIMIT 80''',tid=tid,pid=pid,owner=me())
-    for r in rows:r['details']=json.loads(r.pop('payload') or '{}')
+             s.id AS solutionId,s.reviewStatus AS conceptReviewStatus ORDER BY d.createdAt DESC LIMIT 80''',tid=tid,pid=pid,owner=me())
+    for r in rows:
+        r['details']=json.loads(r.pop('payload') or '{}')
+        if r.get('solutionId') and r.get('conceptReviewStatus')=='rejected':
+            r['status']='rejected'
     return rows
 
 @router.post('/concept-drafts/{did}/save')
@@ -173,7 +257,7 @@ def save_draft(tid:str,did:str,body:ConceptInput):
     sid=str(uuid.uuid4())
     execute('''MATCH (b:ConceptBatch {targetId:$tid,ownerId:$owner})-[:PROPOSED]->(d:ConceptDraft {id:$did})
       MATCH (b)-[:GENERATED_FOR]->(p:Problem {targetId:$tid})
-      CREATE (s:Solution {id:$sid,targetId:$tid,ownerId:$owner,name:$name,description:$desc,createdAt:datetime(),origin:'ai_generated_saved'})
+      CREATE (s:Solution {id:$sid,targetId:$tid,ownerId:$owner,name:$name,description:$desc,createdAt:datetime(),reviewStatus:'active',origin:'ai_generated_saved'})
       CREATE (d)-[:PROMOTED_TO]->(s) CREATE (s)-[:INSPIRED_BY]->(p) SET d.status='saved' ''',
       tid=tid,owner=me(),did=did,sid=sid,name=body.name,desc=body.description)
     return {'id':sid,'name':body.name}
@@ -181,13 +265,56 @@ def save_draft(tid:str,did:str,body:ConceptInput):
 @router.get('/solutions')
 def solutions(tid:str):
     accessible(tid)
-    return query('MATCH (s:Solution {targetId:$tid,ownerId:$owner}) RETURN s.id AS id,s.name AS name,s.description AS description ORDER BY s.createdAt DESC',tid=tid,owner=me())
+    return query("MATCH (s:Solution {targetId:$tid,ownerId:$owner}) WHERE coalesce(s.reviewStatus,'active')='active' RETURN s.id AS id,s.name AS name,s.description AS description ORDER BY s.createdAt DESC",tid=tid,owner=me())
 
 @router.post('/solutions',status_code=201)
 def create_solution(tid:str,body:ConceptInput):
     accessible(tid,True);sid=str(uuid.uuid4())
-    execute('CREATE (s:Solution {id:$sid,targetId:$tid,ownerId:$owner,name:$name,description:$desc,createdAt:datetime(),origin:"manual"})',tid=tid,sid=sid,owner=me(),name=body.name,desc=body.description)
-    return {'id':sid,'name':body.name,'description':body.description}
+    if body.originProblemId is not None:
+        # Validate in this target before constructing any new record.
+        problem_row(tid,body.originProblemId)
+    rows=execute('''MATCH (t:Target {id:$tid,ownerId:$owner})
+       OPTIONAL MATCH (t)-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)
+           -[:CONTAINS]->(p:Problem {id:$pid})
+       WITH t,head(collect(p)) AS origin
+       WHERE $pid IS NULL OR origin IS NOT NULL
+       CREATE (s:Solution {id:$sid,targetId:$tid,ownerId:$owner,name:$name,
+             description:$desc,createdAt:datetime(),reviewStatus:"active",origin:"manual"})
+       FOREACH (_ IN CASE WHEN origin IS NULL THEN [] ELSE [1] END |
+           CREATE (s)-[:INSPIRED_BY]->(origin))
+       RETURN s.id AS id''',tid=tid,sid=sid,owner=me(),name=body.name,
+       desc=body.description,pid=body.originProblemId)
+    if not rows:raise HTTPException(404,'Origin Problem not found in selected target')
+    return {'id':sid,'name':body.name,'description':body.description,
+            'originProblemId':body.originProblemId}
+
+class ConceptStatusUpdate(BaseModel):
+    status: Literal['active','rejected']
+
+@router.patch('/solutions/{sid}/status')
+def change_concept_status(tid:str,sid:str,body:ConceptStatusUpdate):
+    """Rejection is reversible. Keep concept, origin, matches and analyses in Neo4j.
+
+    A viewer cannot reject another person's concept or mutate a shared library.
+    """
+    accessible(tid,True)
+    rows=execute("""MATCH (s:Solution {id:$sid,targetId:$tid,ownerId:$owner})
+        SET s.reviewStatus=$status,s.statusUpdatedAt=datetime()
+        RETURN s.id AS id""",tid=tid,sid=sid,owner=me(),status=body.status)
+    if not rows:raise HTTPException(404,'Concept not found in selected target')
+    return {'ok':True,'status':body.status}
+
+@router.get('/solutions/rejected')
+def rejected_concepts(tid:str,skip:int=0,limit:int=50):
+    """Only the signed-in author's rejected concepts in the authorized target."""
+    accessible(tid)
+    return query("""MATCH (s:Solution {targetId:$tid,ownerId:$owner,reviewStatus:'rejected'})
+        OPTIONAL MATCH (s)-[:INSPIRED_BY]->(p:Problem {targetId:$tid})
+        RETURN s.id AS id,s.name AS name,s.description AS description,
+               p.id AS originProblemId,p.description AS originProblem,
+               toString(s.statusUpdatedAt) AS rejectedAt
+        ORDER BY rejectedAt DESC,id SKIP $skip LIMIT $limit""",
+        tid=tid,owner=me(),skip=max(0,skip),limit=min(100,max(1,limit)))
 
 @router.get('/solutions/{sid}')
 def solution(tid:str,sid:str):
@@ -213,20 +340,79 @@ def match(tid:str,sid:str):
             assumptions=m.assumptions,confidence=m.confidence)
     return out.model_dump()
 
+class EvaluationRequest(BaseModel):
+    mode: Literal['evidence','exploratory'] = 'evidence'
+
+
+@router.post('/solutions/{sid}/evaluations/queue', status_code=202)
+def enqueue_evaluation(tid:str,sid:str,body:EvaluationRequest):
+    """Enqueue only; external AI calls never block graph/navigation requests."""
+    accessible(tid,True)
+    concept_row(tid,sid)
+    from .evaluation_jobs import enqueue
+    return enqueue(me(),tid,sid,body.mode)
+
+@router.get('/evaluations/jobs/{jid}')
+def evaluation_job(tid:str,jid:str):
+    accessible(tid)
+    from .evaluation_jobs import status
+    return status(me(),tid,jid)
+
+@router.get('/solutions/{sid}/evaluations/jobs')
+def evaluation_jobs(tid:str,sid:str):
+    concept_row(tid,sid)
+    from .evaluation_jobs import history
+    return history(me(),tid,sid)
+
+@router.get('/solutions/{sid}/evaluations/compare')
+def compare_evaluations(tid:str,sid:str):
+    """Read-only historical snapshot; preserve unknowns and original model methods."""
+    s=solution(tid,sid)
+    from .evaluation_orchestrator import FACTORS
+    entries=[]
+    for row in s['evaluations']:
+        try:
+            data=json.loads(row['payload']); raw={f['factor']:f for f in data.get('factors',[])}
+            score_max=data.get('scoreMax',5)
+            entries.append({'id':row['id'],'mode':data.get('mode','legacy'),
+              'method':data.get('methodVersion','legacy'),
+              'summary':data.get('summary',''),
+              'scores':{k: (None if raw.get(k,{}).get('score') is None else
+                round(1+(float(raw[k]['score'])-1)*9/4,2) if score_max==5 else raw[k]['score'])
+                for k in FACTORS},'scoreMax':10,
+              'sources':[url for f in raw.values() for url in f.get('evidence_urls',[])][:30]})
+        except (ValueError,TypeError,KeyError):continue
+    return {'conceptId':sid,'evaluations':entries}
+
 @router.post('/solutions/{sid}/evaluate')
-def evaluate(tid:str,sid:str):
+def evaluate(tid:str,sid:str,body:EvaluationRequest):
     accessible(tid,True);s=solution(tid,sid)
     ids=[m['problemId'] for m in s['matches']]
     findings=query('''MATCH (f:Finding {targetId:$tid,ownerId:$owner})-[:ABOUT]->(p:Problem {targetId:$tid})
       WHERE p.id IN $ids MATCH (f)-[:DERIVED_FROM]->(src:Source)
       RETURN f.claim AS claim,src.url AS url,f.limitations AS limitations,f.reviewStatus AS status LIMIT 60''',tid=tid,owner=me(),ids=ids)
-    try:result=ai.evaluate(s['name']+'\n'+s['description'],str(s['matches']),str(findings))
+    # Evidence-based ratings may use only findings explicitly reviewed by this account.
+    # Other sourced-but-unreviewed claims can inform exploratory questions, not factual ratings.
+    input_findings = ([f for f in findings if f.get('status') == 'reviewed']
+                      if body.mode == 'evidence' else findings)
+    try:result=ai.evaluate(s['name']+'\n'+s['description'],str(s['matches']),str(input_findings),mode=body.mode)
     except Exception as exc:raise HTTPException(502,'Evaluation provider failed; consult server logs') from exc
-    eid=str(uuid.uuid4());payload=result.model_dump()
+    # Enforce source provenance after generation. No model-proposed URL can
+    # become a stored evaluation citation unless it was in the scoped findings.
+    urls={f.get('url') for f in input_findings if f.get('url')}
+    for factor in result.factors:
+        factor.evidence_urls=[url for url in factor.evidence_urls if url in urls]
+        if body.mode=='evidence' and factor.score is not None and not factor.evidence_urls:
+            factor.score=None
+            factor.basis='unknown'
+            factor.confidence='unknown'
+        if factor.basis=='inference' and factor.confidence=='high':
+            factor.confidence='low'
+    eid=str(uuid.uuid4());payload={**result.model_dump(),'mode':body.mode,'sentimentIncluded':False,'scoreMax':10}
     execute('''MATCH (s:Solution {id:$sid,targetId:$tid,ownerId:$owner})
-      CREATE (e:Evaluation {id:$eid,targetId:$tid,ownerId:$owner,payload:$payload,createdAt:datetime(),method:'provisional_ai_rubric_v1'})
-      CREATE (e)-[:ASSESSES]->(s)''',tid=tid,sid=sid,owner=me(),eid=eid,payload=json.dumps(payload))
-    return {'id':eid,'data':payload,'evidenceCount':len(findings)}
+      CREATE (e:Evaluation {id:$eid,targetId:$tid,ownerId:$owner,payload:$payload,createdAt:datetime(),method:$method})
+      CREATE (e)-[:ASSESSES]->(s)''',tid=tid,sid=sid,owner=me(),eid=eid,payload=json.dumps(payload),method='ai_rubric_v3_10point_'+body.mode)
+    return {'id':eid,'data':payload,'evidenceCount':len(input_findings)}
 
 @router.post('/search')
 def search(tid:str,body:SearchRequest):

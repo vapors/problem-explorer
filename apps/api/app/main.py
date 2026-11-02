@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from . import auth, jobs
+from . import auth, jobs, evaluation_jobs, graph_preferences
 from .db import query
 
 current_user: ContextVar[str] = ContextVar('current_user', default='')
@@ -18,11 +18,14 @@ def uid():
 @asynccontextmanager
 async def lifespan(app):
     auth.init_db()
+    graph_preferences.init_graph_preferences()
     jobs.start()
+    evaluation_jobs.start()
     yield
+    evaluation_jobs.stop()
     jobs.stop()
 
-app = FastAPI(title='Problem Explorer API', version='0.8.0', lifespan=lifespan)
+app = FastAPI(title='Problem Explorer API', version='0.9.9.1', lifespan=lifespan)
 app.include_router(auth.router)
 
 @app.middleware('http')
@@ -52,7 +55,7 @@ async def require_session_and_origin(request: Request, call_next):
 
 origins = [x.strip() for x in os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(',') if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True,
-                   allow_methods=['GET','POST','PATCH','DELETE'], allow_headers=['*'])
+                   allow_methods=['GET','POST','PATCH','DELETE','PUT'], allow_headers=['*'])
 
 @app.get('/api/health')
 def health():
@@ -65,6 +68,12 @@ def health():
 from .targets import router as target_router
 from .research import router as research_router
 from .admin import router as admin_router
+from .signals import router as signals_router
+from .social_collection import router as collection_router
 app.include_router(target_router)
 app.include_router(research_router)
 app.include_router(admin_router)
+
+app.include_router(signals_router)
+app.include_router(collection_router)
+app.include_router(graph_preferences.router)

@@ -11,6 +11,13 @@ from .db import query,execute,driver
 
 router=APIRouter(prefix='/api/targets',tags=['targets'])
 REFERENCE='reference-longevity'
+# Presentation lens identifiers accepted at the API boundary. They do not alter
+# canonical Target/Stream/Category/Problem model labels or stored research.
+SUPPORTED_LENSES = ('classic', 'general_challenge', 'technical_engineering', 'industrial_design')
+
+def normalize_lens(lens: str) -> str:
+    return lens if lens in SUPPORTED_LENSES else 'classic'
+
 
 def me():
     from .main import uid
@@ -53,10 +60,37 @@ class ProblemInput(BaseModel):
     statement:str=Field(min_length=20,max_length=600)
 
 @router.get('')
-def directory():
-    mine=query('MATCH (t:Target {ownerId:$owner}) RETURN t.id AS id,t.name AS name,t.description AS description,t.shared AS shared,t.ownerId AS ownerId ORDER BY t.name',owner=me())
-    shared=query('MATCH (t:Target {shared:true}) WHERE t.ownerId<>$owner RETURN t.id AS id,t.name AS name,t.description AS description,t.shared AS shared,t.ownerId AS ownerId,t.reference AS reference ORDER BY t.name',owner=me())
-    return {'mine':mine,'shared':shared}
+def directory(lens: str = 'classic'):
+    '''List owned Targets and discoverable shared Targets; suggest a view-only default.
+
+    Legacy missing directoryVisible means listed so upgrades preserve access.
+    Only explicit shared+listed targets can be featured. Lens preferences do
+    not change ownership or force a workspace switch.
+    '''
+    owner = me()
+    selected_lens = normalize_lens(lens)
+    mine=query('''MATCH (t:Target {ownerId:$owner})
+        RETURN t.id AS id,t.name AS name,t.description AS description,
+               coalesce(t.shared,false) AS shared,t.ownerId AS ownerId,
+               coalesce(t.reference,false) AS reference,
+               coalesce(t.directoryVisible,true) AS listed,
+               coalesce(t.featured,false) AS featured,
+               coalesce(t.featuredLenses,[]) AS featuredLenses
+        ORDER BY t.name''',owner=owner)
+    shared=query('''MATCH (t:Target {shared:true})
+        WHERE t.ownerId<>$owner AND coalesce(t.directoryVisible,true)=true
+        RETURN t.id AS id,t.name AS name,t.description AS description,
+               t.shared AS shared,t.ownerId AS ownerId,
+               coalesce(t.reference,false) AS reference,
+               true AS listed,coalesce(t.featured,false) AS featured,
+               coalesce(t.featuredLenses,[]) AS featuredLenses
+        ORDER BY featured DESC,t.name''',owner=owner)
+    # A lens-specific featured item wins; fall back to the general featured
+    # item. No featured entry is also a valid configuration.
+    featured = next((t['id'] for t in shared if selected_lens in (t.get('featuredLenses') or [])), None)
+    if featured is None:
+        featured = next((t['id'] for t in shared if t.get('featured')), None)
+    return {'mine':mine,'shared':shared,'defaultTargetId':featured,'lens':selected_lens}
 
 @router.post('/suggest-streams')
 def suggestions(body:SuggestInput):
@@ -89,16 +123,50 @@ def get_target(tid:str):return accessible(tid)
 @router.patch('/{tid}')
 def update_target(tid:str,body:TargetInput):
     accessible(tid,True)
-    execute('MATCH (t:Target {id:$tid,ownerId:$owner}) SET t.name=$name,t.description=$description,t.shared=$shared',tid=tid,owner=me(),name=body.name.strip(),description=body.description.strip(),shared=body.shared)
+    execute('''MATCH (t:Target {id:$tid,ownerId:$owner})
+        SET t.name=$name,t.description=$description,t.shared=$shared
+        FOREACH (_ IN CASE WHEN $shared THEN [] ELSE [1] END |
+            SET t.directoryVisible=false,t.featured=false,t.featuredLenses=[])
+        ''',tid=tid,owner=me(),name=body.name.strip(),description=body.description.strip(),shared=body.shared)
     return {'ok':True}
 
+def destroy_target(tid: str, owner: str, *, admin: bool = False,
+                   expected_name: str | None = None) -> dict:
+    """Delete a non-reference target and all its records in one Neo4j transaction.
+
+    The ownership, reference and confirmation checks are repeated in the write
+    transaction. Shared Source records and global counters are preserved.
+    Legacy hierarchy nodes lacking targetId are included via structural traversal.
+    """
+    if tid == REFERENCE:
+        raise HTTPException(403, 'Reference target is protected')
+    with driver().session(database=os.getenv('NEO4J_DATABASE', 'neo4j')) as session:
+        def work(tx):
+            rows = tx.run('''MATCH (t:Target {id:$tid})
+                WHERE ($admin OR t.ownerId=$owner)
+                  AND coalesce(t.reference,false)=false
+                  AND ($expected IS NULL OR t.name=$expected)
+                OPTIONAL MATCH (n) WHERE n.targetId=$tid
+                WITH t,collect(DISTINCT n) AS owned
+                OPTIONAL MATCH (t)-[:HAS_STREAM|CONTAINS*1..3]->(d)
+                WITH t, owned, collect(DISTINCT d) AS hierarchy
+                WITH owned + hierarchy + [t] AS nodes
+                UNWIND nodes AS node
+                WITH collect(DISTINCT node) AS doomed
+                FOREACH (node IN doomed | DETACH DELETE node)
+                RETURN size(doomed) AS deleted''', tid=tid, owner=owner,
+                admin=admin, expected=expected_name).data()
+            return rows[0]['deleted'] if rows else 0
+        deleted = session.execute_write(work)
+    if not deleted:
+        raise HTTPException(404, 'Target not found, protected, or confirmation no longer matches')
+    return {'ok': True, 'deletedNodes': deleted}
+
+
 @router.delete('/{tid}')
-def delete_target(tid:str):
-    accessible(tid,True)
-    # Delete target-owned auxiliary records as well as its hierarchy; Source URLs are shared and retained.
-    execute('MATCH (n) WHERE n.targetId=$tid DETACH DELETE n',tid=tid)
-    execute('MATCH (t:Target {id:$tid,ownerId:$owner}) DETACH DELETE t',tid=tid,owner=me())
-    return {'ok':True}
+def delete_target(tid: str):
+    accessible(tid, True)
+    return destroy_target(tid, me())
 
 @router.post('/{tid}/copy',status_code=201)
 def copy_target(tid:str):
@@ -131,7 +199,7 @@ def amcharts_tree(tid: str):
 
     id and crossLinks use Neo4j elementId() for amCharts identity; problem
     recordId is the existing numeric Problem.id required by all CRUD routes.
-    No findings/concepts are recast as structural child nodes.
+    Saved concepts appear as presentation-only attachments to their originating Problem.\n    No new structural CONTAINS relationships are created in Neo4j.
     """
     accessible(tid)  # Enforce owner/shared-reader authorization before either query.
     nodes = query('''MATCH (t:Target {id:$tid})
@@ -147,18 +215,19 @@ def amcharts_tree(tid: str):
                 type: CASE WHEN n:Stream THEN 'stream'
                            WHEN n:Category THEN 'category'
                            WHEN n:Problem THEN 'problem' END,
-                recordId: CASE WHEN n:Problem THEN n.id END
+                recordId: CASE WHEN n:Problem THEN n.id END,
+                recordKey: CASE WHEN n:Problem THEN toString(n.id) ELSE n.id END
             }) AS descendants''', tid=tid)
     if not nodes:
         raise HTTPException(404, 'Target not found or access denied')
     root = {'id': nodes[0]['rootId'], 'name': nodes[0]['rootName'],
-            'type': 'target', 'children': []}
+            'type': 'target', 'stableKey': 'target:'+tid, 'children': []}
     by_id = {root['id']: root}
     # Collect and link in separate passes; Cypher traversal row order is not guaranteed.
     descendants = [row for row in nodes[0]['descendants'] if row.get('id') and row.get('type')]
     for item in descendants:
         child = {'id': item['id'], 'name': item.get('name') or '',
-                 'type': item['type'], 'children': []}
+                 'type': item['type'], 'stableKey': item['type']+':'+str(item.get('recordKey') or item.get('recordId') or item['id']), 'children': []}
         if child['type'] == 'problem':
             child['value'] = 100
             child['recordId'] = item['recordId']
@@ -186,12 +255,57 @@ def amcharts_tree(tid: str):
                                             if destination != row['sourceId']
                                             and destination in by_id
                                             and by_id[destination]['type'] == 'problem'})
+    # Concepts are not structural ontology children: INSPIRED_BY remains the
+    # canonical graph edge. This projection is private to the signed-in account.
+    concept_rows = query('''MATCH (s:Solution {targetId:$tid,ownerId:$owner})
+        -[:INSPIRED_BY]->(p:Problem {targetId:$tid})
+        MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)
+          -[:CONTAINS]->(:Category)-[:CONTAINS]->(p)
+        WHERE coalesce(s.reviewStatus,'active')='active'
+        RETURN elementId(p) AS problemId, s.id AS conceptId,
+               s.name AS name ORDER BY name,conceptId''', tid=tid,owner=me())
+    for record in concept_rows:
+        parent = by_id.get(record['problemId'])
+        if parent is not None and parent['type'] == 'problem':
+            parent['children'].append({
+                'id': 'solution:'+str(record['conceptId']),
+                'stableKey': 'concept:'+str(record['conceptId']),
+                'solutionId': str(record['conceptId']),
+                'name': record['name'] or 'Untitled concept',
+                'type': 'concept', 'value': 30,
+            })
+
+    # Count findings on each attached Problem for the current viewer. Rejected
+    # findings are retained in Neo4j but excluded from reviewed/needs-review badges.
+    finding_rows = query('''MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})-[:PRODUCED]->
+              (f:Finding {targetId:$tid,ownerId:$owner})-[:ABOUT]->(p:Problem {targetId:$tid})
+        MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p)
+        RETURN elementId(p) AS problemId,
+          count(DISTINCT CASE WHEN f.reviewStatus='reviewed' THEN f END) AS reviewed,
+          count(DISTINCT CASE WHEN f.reviewStatus IS NULL OR f.reviewStatus='needs_review' THEN f END) AS unreviewed''',
+        tid=tid,owner=me())
+    for row in finding_rows:
+        problem=by_id.get(row['problemId'])
+        if problem is not None and problem['type']=='problem':
+            problem['reviewedCount']=row['reviewed']
+            problem['unreviewedCount']=row['unreviewed']
+
     def sort_children(item):
+        if 'children' not in item: return
         item['children'].sort(key=lambda child: (child['name'].casefold(), child['id']))
         for child in item['children']:
             sort_children(child)
         if item['type'] == 'problem':
-            item.pop('children')  # Leaf contract has value and crossLinks, no fake hierarchy.
+            item['conceptCount'] = sum(child['type']=='concept' for child in item['children'])
+            item['problemCount'] = 1
+            if not item['children']:
+                item.pop('children')  # No concept attachment: preserve leaf shape.
+        elif item['type']!='concept':
+            descendants=[child for child in item.get('children',[]) if child['type']!='concept']
+            item['problemCount']=sum(child.get('problemCount',0) for child in descendants)
+            item['conceptCount']=sum(child.get('conceptCount',0) for child in descendants)
+            item['reviewedCount']=sum(child.get('reviewedCount',0) for child in descendants)
+            item['unreviewedCount']=sum(child.get('unreviewedCount',0) for child in descendants)
     sort_children(root)
     return root
 

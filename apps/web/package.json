@@ -1,19 +1,29 @@
 {
   "name": "problem-explorer-web",
   "private": true,
-  "version": "0.8.0",
+  "version": "0.9.9.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test:lenses": "node scripts/test-lenses.cjs",
+    "test:graph": "node scripts/test-graph-contract.cjs",
+    "test:concepts": "node scripts/test-concept-interactions.cjs",
+    "test:tooltips": "node scripts/test-graph-tooltips.cjs",
+    "test:publication": "node scripts/test-publication.cjs",
+    "test:onboarding": "node scripts/test-onboarding.cjs",
+    "test:research-ux": "node scripts/test-research-ux.cjs",
+    "test:graph-intelligence": "node scripts/test-graph-intelligence.cjs",
+    "test:badge-layout": "node scripts/test-badge-layout.cjs",
+    "test:ux-v099": "node scripts/test-ux-v099.cjs",
+    "test:ux-v0991": "node scripts/test-ux-v0991.cjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.4.1",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^2.15.2",
     "@amcharts/amcharts5": "^5.13.0",
     "react-rnd": "^10.5.2"
   },
@@ -22,5 +32,8 @@
     "@types/react-dom": "^18.3.6",
     "typescript": "^5.8.3",
     "vite": "^6.2.6"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
   }
 }

@@ -223,3 +223,272 @@
 .workspace-v08 .workspace-toast{position:fixed;top:70px;right:18px;max-width:min(500px,calc(100vw - 36px));display:flex;align-items:flex-start;gap:15px;padding:12px 15px;z-index:9000;background:var(--surface);color:var(--ink);border:1px solid var(--edge);border-radius:9px;box-shadow:0 15px 50px #0005;font-size:12px;line-height:1.5}
 .workspace-v08 .workspace-toast.is-error{border-color:#b91c1c}
 .workspace-v08 .workspace-toast button{border:0;background:none;color:inherit;font-size:20px;line-height:1}
+
+/* v0.8.1: trustworthy, always-visible per-target research persistence summary */
+.research-persistence {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 12px}
+.research-persistence > div {border:1px solid var(--border,rgba(148,163,184,.25));border-radius:12px;padding:12px 9px;min-width:0;background:var(--panel-soft,rgba(148,163,184,.055))}
+.research-persistence strong {display:block;font-size:19px;font-weight:650;font-variant-numeric:tabular-nums}
+.research-persistence small {display:block;line-height:1.35;opacity:.68;margin-top:4px}
+.research-history {border-block:1px solid var(--border,rgba(148,163,184,.25));padding:10px 0;margin:12px 0}
+.research-history summary {cursor:pointer;font-size:13px;font-weight:600}
+.research-history-item {display:block;width:100%;text-align:left;margin-top:8px;padding:10px 12px;border:1px solid var(--border,rgba(148,163,184,.25));border-radius:10px;background:transparent;color:inherit;cursor:pointer}
+.research-history-item:hover {background:rgba(148,163,184,.12)}
+.research-history-item strong,.research-history-item small {display:block}
+.research-history-item small {opacity:.65;margin-top:5px;line-height:1.4}
+.research-runs {display:grid;gap:8px}
+
+/* v0.8.1: Independent hierarchy explorer. Only the list scrolls; chart stays live. */
+.target-explorer{display:flex;flex-direction:column;min-height:100%;height:100%;color:var(--ink);font-size:12px}
+.explorer-context{padding:18px 17px 13px;border-bottom:1px solid var(--edge)}
+.explorer-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--muted-ink);margin-bottom:9px}
+.target-explorer .explorer-context select{width:100%;min-width:0;font-weight:600;font-size:13px;min-height:36px;padding:6px 9px;text-overflow:ellipsis}
+.explorer-scope{color:var(--muted-ink);line-height:1.55;font-size:11px;margin:9px 0 12px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.explorer-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.explorer-actions button{display:inline-flex;align-items:center;gap:5px;margin:0;padding:7px 9px;font-size:11px}
+.explorer-access{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.07em;color:var(--muted-ink)}
+.explorer-tree-tools{padding:13px 12px 10px;border-bottom:1px solid var(--edge)}
+.explorer-search{display:flex;align-items:center;gap:7px;border:1px solid var(--edge);border-radius:8px;background:var(--control);padding:0 10px;color:var(--muted-ink)}
+.target-explorer .explorer-search input{border:0;background:transparent;width:100%;min-width:0;box-shadow:none;font-size:11px;padding:10px 0;outline:none;color:var(--ink)}
+.explorer-search button{border:0;background:none;color:var(--muted-ink);padding:3px;cursor:pointer}
+.explorer-tools-row{display:flex;align-items:center;gap:9px;margin-top:10px;color:var(--muted-ink);font-size:10px}
+.explorer-tools-row>span{flex:1}
+.explorer-tools-row button{border:0;background:none;color:var(--ink);padding:3px 0;font-size:10px;cursor:pointer}
+.explorer-tools-row button:hover{text-decoration:underline}
+.explorer-tree{padding:11px 9px 20px;flex:1;min-height:100px;overflow-y:auto;overscroll-behavior:contain}
+.explorer-root{display:flex;gap:8px;align-items:center;padding:10px 10px 13px;margin:0 4px 4px;border-bottom:1px solid var(--edge);font-weight:700;overflow-wrap:anywhere;line-height:1.45}
+.explorer-root svg{flex-shrink:0}
+.explorer-branch-row{display:flex;gap:4px;align-items:center;border-radius:7px;min-height:35px}
+.explorer-branch-row:hover{background:var(--surface-raised)}
+.explorer-branch-row button{display:flex;align-items:flex-start;gap:8px;flex:1;min-width:0;text-align:left;border:0;background:transparent;color:var(--ink);padding:9px 8px;font-weight:600;line-height:1.4;cursor:pointer}
+.explorer-branch-row button svg{flex-shrink:0;margin-top:1px;color:var(--muted-ink)}
+.explorer-branch-row button span{overflow-wrap:anywhere}
+.explorer-stream-row{margin:0 3px}
+.explorer-count{padding:0 10px 0 5px;font-size:10px;color:var(--muted-ink);font-variant-numeric:tabular-nums}
+.explorer-categories{margin-left:14px;padding-left:7px;border-left:1px solid var(--edge)}
+.explorer-category-row button{font-weight:500;font-size:11px}
+.explorer-problems{margin-left:14px;padding-left:8px;border-left:1px solid var(--edge);display:grid;gap:2px;padding-bottom:7px}
+.explorer-problem{width:100%;display:flex;gap:8px;align-items:flex-start;text-align:left;line-height:1.5;font-size:11px;border:0;border-radius:6px;background:transparent;color:var(--muted-ink);cursor:pointer;padding:8px}
+.explorer-problem span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}
+.explorer-problem:hover,.explorer-problem:focus-visible{background:var(--surface-raised);color:var(--ink)}
+.explorer-problem>svg{flex-shrink:0;margin-top:2px}
+.explorer-problem-dot{width:5px;height:5px;margin-top:6px;border-radius:50%;background:var(--muted-ink);flex-shrink:0}
+.explorer-empty,.explorer-empty-result{display:flex;align-items:center;gap:8px;padding:13px;font-size:11px;color:var(--muted-ink)}
+.overview-quick-actions{border-top:1px solid var(--edge);padding-top:10px}
+.overview-quick-actions .button-row{gap:8px}
+.overview-quick-actions button{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:8px}
+
+/* v0.8.2: evaluation and administrator workspaces remain inside floating panels. */
+.amcharts-radar {width:100%;height:330px;min-height:290px}
+.radar-shell {border:1px solid var(--line, #334155);border-radius:12px;padding:10px 4px;margin:14px 0}
+.radar-legend {display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-size:11px;opacity:.8;padding:5px}
+.radar-legend span::before {content:'—';margin-right:6px}
+.eval-mode-group {display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:12px 0}
+.eval-mode-group select {min-width:185px}
+.eval-integrity-note {padding:10px 12px;border:1px solid var(--line,#334155);border-radius:9px;font-size:12px;line-height:1.5;margin:12px 0}
+.eval-basis {text-transform:uppercase;letter-spacing:.06em;font-size:10px;opacity:.8}
+.admin-targets {margin:20px 0;border-top:1px solid var(--line,#334155);padding-top:16px}
+.admin-targets .admin-table {overflow:auto}
+.admin-targets td {vertical-align:top}
+
+/* v0.9.0 — social discussion annotations stay visually separate from evidence. */
+.signal-config{padding:20px 22px 40px;color:var(--ink)}
+.signal-config h2{font-size:1.3rem;margin:0 0 10px}
+.signal-config h3{font-size:1rem;margin:24px 0 12px;padding-top:16px;border-top:1px solid var(--edge)}
+.signal-state{display:flex;gap:10px;flex-wrap:wrap;padding:11px 12px;border:1px solid var(--edge);border-radius:10px;margin:12px 0}
+.signal-state span{font-size:12px;opacity:.85}
+.signal-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.signal-config .finding{margin-top:9px}
+.signal-config .finding a,.eval-integrity-note a{overflow-wrap:anywhere}
+.radar-note{text-align:center;font-size:12px;opacity:.8;padding:8px 12px}
+@media(max-width:500px){.signal-columns{grid-template-columns:1fr}}
+
+/* v0.9.1 — two-step New Target / Investigate wizard, floating over the network. */
+.workspace-v08 .onboarding-card{width:min(840px,96vw);max-height:94dvh;overflow-y:auto}
+.onboarding-progress{display:flex;align-items:center;gap:12px;padding:5px 0 22px;font-size:11px;letter-spacing:.06em;color:var(--muted,#8492a2)}
+.onboarding-progress .active{color:var(--ink,#e2e8f0);font-weight:700}
+.onboarding-advanced{margin:14px 0;padding:15px;border:1px solid var(--edge,#334155);border-radius:12px}
+.onboarding-advanced .quick-add{display:flex;gap:7px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.onboarding-advanced .quick-add input,.onboarding-advanced .quick-add select{min-width:135px;flex:1}
+.onboarding-stream-list{border:1px solid var(--edge,#334155);border-radius:12px;overflow:hidden;margin-top:18px}
+.onboarding-stream-row{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--edge,#334155);padding:13px 14px;font-size:12px}
+.onboarding-stream-row:last-child{border-bottom:0}
+.onboarding-stream-row>span:nth-child(2){flex:1;min-width:0}
+.onboarding-stream-row strong{display:block}
+.onboarding-stream-row small{display:block;opacity:.65;font-size:11px;margin-top:4px}
+.onboarding-complete{display:inline-flex;gap:5px;align-items:center;color:var(--ink,#e2e8f0);font-size:11px}
+.onboarding-taxonomy-controls{align-items:end;flex-wrap:wrap}.onboarding-taxonomy-controls .field{margin:0;flex:1;min-width:230px}
+.onboarding-taxonomy-preview{border:1px solid var(--edge,#334155);border-radius:12px;padding:16px;margin-top:16px}
+.onboarding-taxonomy-preview .row{align-items:center}.onboarding-category{border-top:1px solid var(--edge,#334155);padding:12px 2px;font-size:12px}
+.onboarding-category summary{cursor:pointer}.onboarding-category .field{margin:12px 0}
+.evaluation-queue{margin:14px 0 24px}.evaluation-queue>p{margin-top:6px}.evaluation-queue .eval-integrity-note svg{vertical-align:middle}
+.eval-history{font-size:12px;margin:20px 0}.eval-history summary{cursor:pointer}
+.eval-compare{margin:20px 0}.eval-compare h3{display:flex;align-items:center;gap:8px}
+.eval-compare-selects{display:flex;gap:10px;flex-wrap:wrap}.eval-compare-selects label{flex:1;min-width:160px;font-size:12px}
+.eval-compare-selects select{display:block;width:100%;max-width:100%;margin-top:8px}
+.eval-comparison-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:15px}
+.eval-comparison-table td,.eval-comparison-table th{border-bottom:1px solid var(--edge,#334155);padding:9px;text-align:left}
+@media(max-width:620px){.onboarding-progress{gap:5px;flex-wrap:wrap}.onboarding-stream-row{flex-wrap:wrap}.workspace-v08 .onboarding-card{padding:16px}}
+
+/* v0.9.2: presentation lenses are controls, never alternate graph canvases. */
+.workspace-v08 .toolbar-lens{display:flex;align-items:center;gap:7px;padding:0 7px;color:var(--muted-ink);font-size:10px;white-space:nowrap}
+.workspace-v08 .toolbar-lens select{max-width:190px;min-width:110px;background:var(--control);border:1px solid var(--edge);border-radius:8px;color:var(--ink);font-size:11px;line-height:1.2;padding:8px 9px;outline-offset:2px;cursor:pointer}
+.workspace-v08 .toolbar-lens select:focus-visible{outline:2px solid var(--muted-ink)}
+.workspace-v08 .onboarding-progress-step{display:inline-flex;gap:12px;align-items:center;min-width:0}
+.workspace-v08 .onboarding-card .wizard-head{margin-bottom:17px}
+.workspace-v08 .onboarding-card .field select{max-width:100%;color:var(--ink);background:var(--control);border:1px solid var(--edge)}
+@media(max-width:1080px){.workspace-v08 .toolbar-lens>span{display:none}.workspace-v08 .toolbar-lens select{max-width:132px}}
+@media(max-width:680px){.workspace-v08 .toolbar-lens select{max-width:98px;min-width:90px;font-size:10px}.workspace-v08 .onboarding-progress-step{gap:4px}.workspace-v08 .onboarding-progress{letter-spacing:0}}
+/* v0.9.3 depth palette controls; graph itself remains under floating windows. */
+.graph-palette-grid {display:grid;gap:10px;margin:16px 0}
+.graph-palette-row {display:flex;align-items:center;gap:14px;justify-content:space-between}
+.graph-palette-row span {min-width:90px;text-transform:capitalize}
+.graph-palette-row input[type="color"] {width:44px;height:32px;padding:1px;cursor:pointer}
+.graph-palette-row code {font-size:12px;min-width:70px}
+
+/* v0.9.4: independent concept context modal. Node badges are amCharts sprites. */
+.workspace-v08 .concept-workspace-modal{width:min(650px,100%)}
+.workspace-v08 .concept-workspace-modal .eyebrow{display:flex;align-items:center;gap:8px;color:var(--muted-ink);font-weight:650;letter-spacing:.045em;font-size:11px;text-transform:uppercase}
+.workspace-v08 .concept-workspace-description{font-size:14px;line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere}
+.workspace-v08 .concept-workspace-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:24px 0 14px}
+.workspace-v08 .concept-workspace-metrics>div{background:var(--surface-raised);border:1px solid var(--edge);border-radius:9px;padding:14px 17px}
+.workspace-v08 .concept-workspace-metrics strong{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.workspace-v08 .concept-workspace-metrics small{display:block;color:var(--muted-ink);font-size:11px;margin-top:4px}
+.workspace-v08 .concept-workspace-modal .context-modal-actions{padding-top:16px;border-top:1px solid var(--edge)}
+
+/* v0.9.5 — discrete per-lens default selectors in the admin Target inventory. */
+.lens-feature-settings {min-width:160px;position:relative;}
+.lens-feature-settings summary {cursor:pointer;font-size:.82rem;user-select:none;}
+.lens-feature-option {display:flex;align-items:center;gap:7px;margin:7px 0;font-size:.78rem;line-height:1.3;cursor:pointer;white-space:normal;}
+.lens-feature-option input {width:16px;height:16px;flex:0 0 16px;accent-color:var(--accent, #94a3b8);}
+.lens-feature-option:has(input:disabled) {opacity:.6;cursor:default;}
+
+/* v0.9.6: icon-based lens selection and step-by-step taxonomy review.
+   Presentation only: the wizard retains existing target/stream/taxonomy contracts. */
+.workspace-v08 .onboarding-card{width:min(920px,96vw)}
+.onboarding-progress{flex-wrap:wrap;row-gap:8px}
+.onboarding-progress-step{display:inline-flex;gap:8px;align-items:center;min-width:0}
+.onboarding-progress-step>span:nth-child(2){font-size:11px;white-space:nowrap}
+.onboarding-step-square,.onboarding-review-square{width:22px;height:22px;border:1px solid var(--edge,#334155);border-radius:5px;display:inline-grid;place-items:center;font-size:11px;font-weight:650;color:var(--muted-ink,#94a3b8);flex:none}
+.onboarding-progress-step.active .onboarding-step-square,.onboarding-progress-step.complete .onboarding-step-square{background:var(--surface-raised,#273348);border-color:var(--muted-ink,#94a3b8);color:var(--ink,#fff)}
+.onboarding-lens-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:16px 0 24px}
+.onboarding-lens-option{position:relative;min-width:0;border:1px solid var(--edge,#334155);border-radius:12px;background:var(--control,#172338);transition:border-color .15s,background-color .15s,transform .15s}
+.onboarding-lens-option:hover,.onboarding-lens-option:focus-within{background:var(--surface-raised,#283449);border-color:var(--muted-ink,#94a3b8)}
+.onboarding-lens-option.selected{background:var(--surface-raised,#283449);border:1.5px solid var(--ink,#fff)}
+.onboarding-lens-button{display:flex;flex-direction:column;align-items:flex-start;gap:16px;text-align:left;justify-content:space-between;min-height:124px;width:100%;border:0;border-radius:12px;background:transparent;color:var(--ink,#fff);padding:17px 26px 17px 15px;font-size:12px;cursor:pointer;line-height:1.4;font-weight:620}
+.onboarding-lens-button svg{color:var(--muted-ink,#94a3b8)}
+.onboarding-lens-button .onboarding-lens-check{position:absolute;top:10px;right:9px;color:var(--ink,#fff)}
+.onboarding-lens-button:focus-visible,.onboarding-lens-info:focus-visible{outline:2px solid var(--ink,#fff);outline-offset:2px}
+.onboarding-lens-info{position:absolute;right:9px;bottom:9px;cursor:help;z-index:2;display:grid;place-items:center;color:var(--muted-ink,#94a3b8)}
+.onboarding-lens-info:hover{color:var(--ink,#fff)}
+.onboarding-lens-tooltip{position:absolute;right:-10px;bottom:calc(100% + 8px);width:min(230px,65vw);background:var(--surface-raised,#253448);color:var(--ink,#fff);border:1px solid var(--edge,#334155);padding:10px 12px;border-radius:9px;font-size:11px;font-weight:400;line-height:1.45;box-shadow:0 8px 26px #0004;opacity:0;pointer-events:none;visibility:hidden;z-index:7;white-space:normal;text-align:left}
+.onboarding-lens-info:hover .onboarding-lens-tooltip,.onboarding-lens-info:focus .onboarding-lens-tooltip{opacity:1;visibility:visible}
+.onboarding-lens-next{margin:10px 0 0;padding-top:18px;border-top:1px solid var(--edge,#334155);animation:onboarding-enter .18s ease-out}
+.onboarding-lens-next h2{font-size:22px;font-weight:600;margin:0 0 8px}
+.onboarding-lens-next .muted{font-size:12px;margin:0 0 15px}
+@keyframes onboarding-enter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.onboarding-map-depth{margin:16px 0 12px;max-width:480px}
+.onboarding-review-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:7px;margin:18px 0}
+.onboarding-review-step{display:flex;align-items:center;gap:8px;min-width:0;text-align:left;border:1px solid var(--edge,#334155);border-radius:9px;background:var(--control,#172338);color:var(--muted-ink,#94a3b8);padding:9px;font-size:11px;line-height:1.4}
+.onboarding-review-step span:last-child{overflow:hidden;text-overflow:ellipsis}
+.onboarding-review-step.current{border-color:var(--ink,#fff);background:var(--surface-raised,#253448);color:var(--ink,#fff)}
+.onboarding-review-step.done{color:var(--ink,#fff);cursor:pointer}
+.onboarding-review-step.done .onboarding-review-square{background:var(--surface-raised,#253448);color:var(--ink,#fff)}
+.onboarding-review-step:disabled{cursor:default;opacity:.8}
+.onboarding-review-body{border:1px solid var(--edge,#334155);border-radius:12px;padding:15px 17px;margin-top:13px}
+.onboarding-review-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:14px}
+.onboarding-review-heading strong{overflow-wrap:anywhere}
+.onboarding-category{border-top:1px solid var(--edge,#334155);margin:0;padding:0}
+.onboarding-category summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;font-size:12px;padding:13px 2px;line-height:1.4}
+.onboarding-category summary::-webkit-details-marker{display:none}
+.onboarding-category summary::before{content:'+';display:grid;place-items:center;width:18px;height:18px;flex:none;border:1px solid var(--edge,#334155);border-radius:4px;font-size:14px;font-weight:600}
+.onboarding-category[open] summary::before{content:'−'}
+.onboarding-category summary:hover{color:var(--ink,#fff)}
+.onboarding-category-summary{display:inline;flex:1}
+.onboarding-category-summary small{color:var(--muted-ink,#94a3b8)}
+.onboarding-category-editor{padding:2px 8px 14px 26px}
+.onboarding-review-actions{align-items:center;justify-content:space-between;flex-wrap:wrap}
+.onboarding-review-actions .mini{margin-right:auto}
+@media(max-width:750px){.onboarding-lens-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.onboarding-lens-button{min-height:100px}.onboarding-progress-step>span:nth-child(2){font-size:10px}}
+@media(max-width:450px){.onboarding-progress-step{gap:4px}.onboarding-progress-step>span:nth-child(2){max-width:80px;overflow:hidden;text-overflow:ellipsis}.onboarding-lens-grid{gap:7px}.onboarding-lens-button{padding:13px 22px 12px 11px;font-size:11px}}
+@media(prefers-reduced-motion:reduce){.onboarding-lens-option{transition:none}.onboarding-lens-next{animation:none}}
+
+/* v0.9.7: overview and findings counts are live, interactive navigation surfaces. */
+.research-overview-metrics button,.research-persistence button {border:1px solid var(--line, #596475);border-radius:8px;background:transparent;color:inherit;text-align:center;cursor:pointer;padding:10px;}
+.research-overview-metrics button:hover,.research-persistence button:hover {background:var(--surface-2,rgba(128,140,160,.12));}
+.research-overview-metrics button strong,.research-persistence button strong{display:block;font-size:1.35rem;}
+.research-overview-metrics button small,.research-persistence button small{display:block;color:var(--muted,#94a3b8);font-size:.75rem;margin-top:5px;}
+.onboarding-review-step.skipped .onboarding-review-square{opacity:.6;}
+.research-overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}
+.research-persistence{grid-template-columns:repeat(auto-fit,minmax(115px,1fr));}
+.research-persistence>button{background:var(--panel-soft,rgba(148,163,184,.055));}
+
+/* v0.9.8 focused studios and badge administration */
+.graph-badge-switches{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.graph-badge-switch{display:flex;align-items:center;gap:9px;font-size:13px}
+.graph-badge-switch input{width:auto;accent-color:var(--accent,#64748b)}
+.studio-focus-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.studio-focus-header h3{margin:0}
+.studio-origin-title{margin:6px 0}
+.studio-global-filter{margin:12px 0 18px}
+.studio-global-filter input{margin-bottom:8px}
+.studio-muted{font-size:12px;opacity:.75;margin-top:5px}
+
+/* Graph badge state controls — compact enough to fit the floating admin panel. */
+.graph-badge-appearance-table{display:grid;gap:0;margin:12px 0 16px;border:1px solid var(--border,#475569);border-radius:10px;overflow:hidden}
+.graph-badge-appearance-head,.graph-badge-appearance-row{display:grid;grid-template-columns:minmax(112px,1.5fr) minmax(95px,1fr) minmax(95px,1fr) minmax(65px,.75fr);gap:8px;align-items:center;padding:10px}
+.graph-badge-appearance-head{font-size:11px;font-weight:700;color:var(--muted,#94a3b8);background:var(--surface-alt,rgba(127,127,127,.08))}
+.graph-badge-appearance-row+.graph-badge-appearance-row{border-top:1px solid var(--border,rgba(127,127,127,.25))}
+.graph-badge-kind,.graph-badge-state,.graph-badge-options{display:flex;align-items:center;gap:9px}
+.graph-badge-kind{font-size:12px}
+.graph-badge-kind input,.graph-badge-state input[type="checkbox"]{width:auto;flex:none;accent-color:var(--accent,#64748b)}
+.graph-badge-state{justify-content:flex-start}
+.graph-badge-state input[type="color"]{width:39px;height:30px;padding:1px;cursor:pointer;border-radius:5px}
+.graph-badge-options{justify-content:space-between;flex-wrap:wrap;margin:14px 0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* v0.9.9: Reuse original tokens and control styling. Layout only. */
+.workspace-v08 .research-studio-sessions {display:grid;gap:8px;margin:12px 0 20px}
+.workspace-v08 .research-studio-sessions .research-history-item {width:100%;text-align:left}
+.workspace-v08 .research-studio-problems {max-height:360px;overflow:auto;border-top:1px solid var(--edge)}
+.workspace-v08 .research-studio-panel .research-persistence {grid-template-columns:repeat(auto-fit,minmax(116px,1fr))}
+.workspace-v08 .concept-studio-layout {grid-template-columns:minmax(260px,.92fr) minmax(340px,1.6fr);align-items:start}
+.workspace-v08 .concept-studio-layout > .panel {min-width:0}
+.workspace-v08 .concept-create-disclosure {border-top:1px solid var(--edge);margin-top:20px;padding-top:17px}
+.workspace-v08 .concept-create-disclosure > summary,
+.workspace-v08 .concept-ai-disclosure > summary {cursor:pointer;display:flex;align-items:center;gap:7px;font-size:13px;font-weight:650}
+.workspace-v08 .concept-create-disclosure[open] > summary {margin-bottom:15px}
+.workspace-v08 .concept-ai-disclosure {margin-top:15px;border:1px solid var(--edge);border-radius:9px;padding:12px}
+.workspace-v08 .concept-ai-disclosure[open] > summary {margin-bottom:12px}
+.workspace-v08 .concept-studio-workspace .concept-workspace-description {white-space:pre-wrap;overflow-wrap:anywhere}
+.workspace-v08 .concept-studio-workspace .context-modal-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+.workspace-v08 .concept-studio-workspace .concept-workspace-metrics {margin:20px 0 14px}
+.workspace-v08 .evalchart {height:auto;max-width:100%;margin:16px 0 28px;display:block;clear:both}
+.workspace-v08 .evalchart .radar-shell {height:clamp(380px,46vw,530px);margin:0;padding:0;border-radius:12px;overflow:hidden}
+.workspace-v08 .evalchart .amcharts-radar {height:100%;min-height:0;width:100%}
+.workspace-v08 .evalchart + .factor-grid {clear:both;margin-top:20px}
+.workspace-v08 .evaluation-queue .eval-history {border:1px solid var(--edge);padding:12px;border-radius:9px}
+.workspace-v08 .evaluation-queue .eval-history > summary {font-weight:650}
+.workspace-v08 .evaluation-queue .eval-compare {margin-top:18px}
+.workspace-v08 .eval-mode-group label {font-size:12px}
+.workspace-v08 .eval-mode-group select {font-size:12px;padding:11px;border-radius:8px}
+@media(max-width:760px){.workspace-v08 .concept-studio-layout{grid-template-columns:1fr}.workspace-v08 .evalchart .radar-shell{height:390px}}
+
+/* v0.9.9.1: one consistent clickable metric surface for every Overview count.
+   Scoped to Overview to avoid changing administration or research summaries. */
+.workspace-v08 .overview-metrics > button {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:78px; width:100%; padding:11px 13px;
+  background:var(--surface-raised); border:1px solid var(--edge); border-radius:8px;
+  color:var(--ink); text-align:center; cursor:pointer;
+}
+.workspace-v08 .overview-metrics > button strong {
+  display:block; font:600 20px 'Space Grotesk',sans-serif; color:var(--ink);
+}
+.workspace-v08 .overview-metrics > button small {
+  display:block; margin-top:4px; font-size:10px; color:var(--muted-ink);
+}
+.workspace-v08 .overview-metrics > button:hover,
+.workspace-v08 .overview-metrics > button:focus-visible {
+  background:var(--control); border-color:var(--muted-ink);
+}
+.workspace-v08 .overview-metrics > button:focus-visible {outline:2px solid var(--muted-ink);outline-offset:2px;}
