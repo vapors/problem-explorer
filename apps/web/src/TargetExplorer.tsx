@@ -1,7 +1,10 @@
 import {useEffect, useMemo, useState} from 'react';
 import {BookOpen, ChevronDown, ChevronRight, FolderOpen, Plus, Search, Share2, X} from 'lucide-react';
 import {removeSeedCatalogPrefix} from './networkLabels';
+<<<<<<< HEAD
 import {useTerminology} from './contexts/TerminologyContext';
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 export type ExplorerTarget = {
   id: string;
@@ -10,7 +13,10 @@ export type ExplorerTarget = {
   ownerId: string;
   shared: boolean;
   reference?: boolean;
+<<<<<<< HEAD
   featured?: boolean;
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 };
 export type ExplorerStream = {id: string; name: string; description: string};
 export type ExplorerScope = {
@@ -50,7 +56,10 @@ type Props = {
  */
 export default function TargetExplorer({target, mine, shared, streams, hierarchy, problems,
   readOnly, busy, onTargetChange, onNewTarget, onBrowseTargets, onOpenProblem}: Props) {
+<<<<<<< HEAD
   const {t}=useTerminology();
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
   const [query, setQuery] = useState('');
   const [openStreams, setOpenStreams] = useState<Set<string>>(() => new Set());
   const [openCategories, setOpenCategories] = useState<Set<string>>(() => new Set());
@@ -61,11 +70,22 @@ export default function TargetExplorer({target, mine, shared, streams, hierarchy
     setOpenStreams(new Set());
     setOpenCategories(new Set());
   }, [target?.id]);
+<<<<<<< HEAD
   // Branches remain collapsed on initial load, including after async stream loading.
   const tree = useMemo(() => streams.map(stream => {
     const categories = hierarchy.filter(c => c.streamId === stream.id && c.categoryId).map(c => ({
       id: c.categoryId as string,
       name: c.category || t('explorer.untitled'),
+=======
+  // Streams arrive after the target is selected; initialize expansion at that point.
+  useEffect(() => {
+    setOpenStreams(new Set(streams.map(s => s.id)));
+  }, [streams]);
+  const tree = useMemo(() => streams.map(stream => {
+    const categories = hierarchy.filter(c => c.streamId === stream.id && c.categoryId).map(c => ({
+      id: c.categoryId as string,
+      name: c.category || 'Untitled category',
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
       problems: problems.filter(p => p.categoryId === c.categoryId && p.streamId === stream.id),
       count: c.count,
     }));
@@ -101,6 +121,7 @@ export default function TargetExplorer({target, mine, shared, streams, hierarchy
     setOpenCategories(new Set());
   };
 
+<<<<<<< HEAD
   return <section className="target-explorer" aria-label={t('app.explorer')}>
     <div className="explorer-context">
       <div className="explorer-eyebrow">{t('explorer.active').toUpperCase()}</div>
@@ -119,22 +140,55 @@ export default function TargetExplorer({target, mine, shared, streams, hierarchy
         <button className="secondary small" type="button" onClick={onNewTarget}><Plus size={14}/> {t('app.newTarget')}</button>
         <button className="ghost small" type="button" onClick={onBrowseTargets}><Share2 size={14}/> {t('explorer.directory')}</button>
         {target && <span className="explorer-access">{readOnly ? t('app.readOnly') : t('app.editable')}</span>}
+=======
+  return <section className="target-explorer" aria-label="Target explorer">
+    <div className="explorer-context">
+      <div className="explorer-eyebrow">ACTIVE RESEARCH TARGET</div>
+      <select value={target?.id || ''} onChange={e => onTargetChange(e.target.value)}
+        disabled={busy} aria-label="Choose active target">
+        <option value="" disabled>Select a target</option>
+        {!!mine.length && <optgroup label="My targets">{mine.map(item =>
+          <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>}
+        {!!shared.length && <optgroup label="Shared research">{shared.map(item =>
+          <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>}
+      </select>
+      <div className="explorer-scope" title={target?.description || ''}>
+        {target?.description || 'Choose a research target to explore its structure.'}
+      </div>
+      <div className="explorer-actions">
+        <button className="secondary small" type="button" onClick={onNewTarget}><Plus size={14}/> New target</button>
+        <button className="ghost small" type="button" onClick={onBrowseTargets}><Share2 size={14}/> Directory</button>
+        {target && <span className="explorer-access">{readOnly ? 'READ ONLY' : 'EDITABLE'}</span>}
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
       </div>
     </div>
     <div className="explorer-tree-tools">
       <label className="explorer-search"><Search size={15}/>
+<<<<<<< HEAD
         <input aria-label={t('explorer.filter')} placeholder={t('explorer.search')}
+=======
+        <input aria-label="Filter target hierarchy" placeholder="Find a stream, category, or problem…"
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
           value={query} onChange={e => setQuery(e.target.value)}/>
         {query && <button title="Clear filter" aria-label="Clear filter" type="button" onClick={() => setQuery('')}><X size={14}/></button>}
       </label>
       <div className="explorer-tools-row">
+<<<<<<< HEAD
         <span>{t('explorer.counts',{streamCount:streams.length,categoryCount:hierarchy.filter(item=>item.categoryId).length,problemCount:problems.length})}</span>
+=======
+        <span>{streams.length} streams · {hierarchy.filter(item => item.categoryId).length} categories · {problems.length} problems</span>
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
         <button type="button" onClick={expandAll}>Expand</button>
         <button type="button" onClick={collapseAll}>Collapse</button>
       </div>
     </div>
+<<<<<<< HEAD
     <div className="explorer-tree" role="tree" aria-label={t('explorer.structure')}>
       {!target && <p className="empty">{t('explorer.noTarget')}</p>}
+=======
+    <div className="explorer-tree" role="tree" aria-label="Target structure">
+      {!target && <p className="empty">Choose or create a target to explore.</p>}
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
       {target && <>
         <div className="explorer-root" title={target.name}><BookOpen size={16}/><span>{target.name}</span></div>
         {visibleTree.map(stream => {
@@ -167,13 +221,21 @@ export default function TargetExplorer({target, mine, shared, streams, hierarchy
                     <span>{removeSeedCatalogPrefix(problem.description, 'problem')}</span>
                     <ChevronRight size={13}/>
                   </button>)}
+<<<<<<< HEAD
                   {!category.problems.length && <span className="explorer-empty">{t('explorer.emptyCategory')}</span>}
+=======
+                  {!category.problems.length && <span className="explorer-empty">No problems in this category</span>}
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
                 </div>}
               </div>;
             })}</div>}
           </div>;
         })}
+<<<<<<< HEAD
         {!visibleTree.length && <div className="explorer-empty-result"><FolderOpen size={18}/> {t('explorer.noMatches')}</div>}
+=======
+        {!visibleTree.length && <div className="explorer-empty-result"><FolderOpen size={18}/> No matches in this target.</div>}
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
       </>}
     </div>
   </section>;

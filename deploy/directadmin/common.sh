@@ -13,7 +13,11 @@ pe_load_config() {
   # Only run trusted releases created by you. Do not use untrusted ZIP archives.
   # shellcheck disable=SC1090
   source "$root/deploy/release.env"
+<<<<<<< HEAD
   [[ ${RELEASE_VERSION:-} =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || pe_die 'RELEASE_VERSION must be like X.Y.Z or X.Y.Z.W'
+=======
+  [[ ${RELEASE_VERSION:-} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || pe_die 'RELEASE_VERSION must be like 0.8.1'
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
   [[ ${DEPLOY_USER:-} =~ ^[a-z_][a-z0-9_-]*$ ]] || pe_die 'Invalid DEPLOY_USER'
   [[ ${DEPLOY_DOMAIN:-} =~ ^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$ ]] || pe_die 'Invalid DEPLOY_DOMAIN'
   [[ ${API_SERVICE:-} =~ ^[a-zA-Z0-9_.@-]+$ ]] || pe_die 'Invalid API_SERVICE'

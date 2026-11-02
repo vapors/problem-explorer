@@ -25,7 +25,11 @@ async def lifespan(app):
     evaluation_jobs.stop()
     jobs.stop()
 
+<<<<<<< HEAD
 app = FastAPI(title='Problem Explorer API', version='0.9.9.1', lifespan=lifespan)
+=======
+app = FastAPI(title='Problem Explorer API', version='0.8.1', lifespan=lifespan)
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 app.include_router(auth.router)
 
 @app.middleware('http')

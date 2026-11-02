@@ -1,5 +1,9 @@
 /** Chart-only presentation. Never change stored names, statements, IDs or search content. */
+<<<<<<< HEAD
 export type GraphRole = 'target' | 'stream' | 'category' | 'problem' | 'concept';
+=======
+export type GraphRole = 'target' | 'stream' | 'category' | 'problem';
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 export function removeSeedCatalogPrefix(name: string, role: GraphRole): string {
   const raw = name.trim();
@@ -25,7 +29,10 @@ const baseRules: Record<GraphRole, Rule> = {
   stream:   {radius: 57, fontSize: 12.0, chars: 15, lines: 3},
   category: {radius: 48, fontSize: 11.0, chars: 14, lines: 3},
   problem:  {radius: 42, fontSize: 10.5, chars: 13, lines: 3},
+<<<<<<< HEAD
   concept:  {radius: 34, fontSize: 10.0, chars: 12, lines: 3},
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 };
 
 /** Make a readable three-line *preview*; the tooltip always shows full source text. */

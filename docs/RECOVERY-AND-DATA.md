@@ -4,7 +4,11 @@
 
 Before changing production files, deployment creates an access-restricted directory such as:
 
+<<<<<<< HEAD
 `/home/siteadmin/problem-explorer-backups/v0.9.1-predeploy-20261023T200000Z/`
+=======
+`/home/siteadmin/problem-explorer-backups/v0.8.2-predeploy-20261023T200000Z/`
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 It contains a `code/` snapshot of the previous application sources (excluding `.env`, SQLite, venv, node_modules and other runtime data), plus `frontend/index.html` and `frontend/assets/`. The file `latest-code-backup.txt` points at the most recent predeploy snapshot. **This is not a user-data backup.** Do not mistake it for a Neo4j dump.
 
@@ -14,7 +18,11 @@ Find the exact snapshot printed by `deploy.sh`, then as root:
 
 ```bash
 APP=/home/siteadmin/domains/explorer.pixelandpiece.com/problem-explorer
+<<<<<<< HEAD
 BACKUP=/home/siteadmin/problem-explorer-backups/v0.9.1-predeploy-REPLACE_WITH_TIMESTAMP
+=======
+BACKUP=/home/siteadmin/problem-explorer-backups/v0.8.2-predeploy-REPLACE_WITH_TIMESTAMP
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 sudo bash "$APP/deploy/directadmin/rollback.sh" "$BACKUP"
 ```
 
@@ -67,6 +75,7 @@ Validate the tool syntax on your particular Neo4j installation before using it. 
 - `502 Bad Gateway`: public web proxy can't reach localhost 8181; test localhost API first; service may need a few seconds after restart.
 - `Forbidden / Server unable to read htaccess`: Apache/DirectAdmin cannot traverse the public path or read `.htaccess`; inspect `namei -l` and domain Apache error log. Do not chmod 777, delete `.htaccess`, or change all home directories.
 - `/api/health` healthy but UI broken: inspect browser console/network, `npm run build`, index/assets paths, and authenticated API failures. A successful health check says nothing about user-scoped research authorization.
+<<<<<<< HEAD
 
 ## v0.9.1 note: durable evaluation state
 
@@ -80,3 +89,5 @@ The additive `user_graph_views` and `graph_appearance` tables live in `apps/api/
 ### v0.9.8 concept-status rollback note
 
 Rejecting a concept sets an additive `reviewStatus` property on the existing Neo4j Solution, without deletion. Rollback of code does not roll back these user edits. Back up Neo4j and SQLite separately before upgrades, and restore records deliberately when needed; never reset/reseed in a routine rollout.
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8

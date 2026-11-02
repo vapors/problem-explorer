@@ -17,9 +17,15 @@ This is the **canonical non-destructive upgrade procedure** for the existing dep
 
 **Do not run `app.bootstrap --reset-all`, `--seed-reference`, migrations, or copy the local `.env` during a normal upgrade.** The deployer will never call those commands. Do not rewrite DirectAdmin Nginx templates, touch `/api/` proxy settings, deploy Docker or run system-wide pip.
 
+<<<<<<< HEAD
 ## Historical one-time installation of the release tooling (v0.8.1)
 
 Only for an installation that does not yet have `deploy.sh`, upload the v0.8.1 Deployment Toolkit ZIP into `/home/siteadmin/releases/`, then as root:
+=======
+## One-time installation of the release tooling (this v0.8.1 package)
+
+Because the currently installed app may not yet contain `deploy.sh`, first upload the v0.8.1 source ZIP into `/home/siteadmin/releases/`, then as root:
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 ```bash
 VERSION=0.8.1
@@ -38,7 +44,11 @@ sudo bash "$STAGE/deploy/directadmin/deploy.sh" "$STAGE"
 
 **Filename note:** Use the **documentation-enhanced v0.8.1 ZIP** produced with this guide; the earlier `Readable-Graph-Target-Explorer.zip` predates these scripts. If you rename the ZIP, update only `ZIP=`. Do not try to invoke `preflight.sh` from the original v0.8.1 ZIP.
 
+<<<<<<< HEAD
 ## Every upgrade (v0.8.1+ toolkit) (one reusable command)
+=======
+## Every subsequent version (one reusable command)
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 1. Set `RELEASE_VERSION` in the new source package's `deploy/release.env` before packaging.
 2. Build/test locally (`scripts/test-local.ps1`) and create the sanitized ZIP (`scripts/package-release.ps1`).
@@ -49,7 +59,11 @@ sudo bash "$STAGE/deploy/directadmin/deploy.sh" "$STAGE"
 APP=/home/siteadmin/domains/explorer.pixelandpiece.com/problem-explorer
 sudo bash "$APP/deploy/directadmin/preflight.sh"
 sudo bash "$APP/deploy/directadmin/deploy.sh" \
+<<<<<<< HEAD
   /home/siteadmin/releases/Problem-Explorer-v0.9.4.1-Badge-Tooltip-Polish.zip
+=======
+  /home/siteadmin/releases/Problem-Explorer-v0.8.2.zip
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 ```
 
 Change only the example ZIP name/path to your actual uploaded archive (it may include a descriptive suffix). The script reads the version **from the release**, checks the service account and Python 3.12, makes an isolated `siteadmin`-owned build tree under `/home/siteadmin/releases/`, runs offline backend tests and `npm ci`/`npm install` + `npm run build` **as siteadmin**, snapshots previous code+frontend, stops only FastAPI, copies source as `siteadmin` with file/dir modes 644/755, reuses the existing venv to check requirements, copies only built Vite assets into public_html, starts FastAPI and retries health checks.
@@ -65,7 +79,11 @@ sudo systemctl status problem-explorer.service --no-pager
 sudo journalctl -u problem-explorer.service -n 80 --no-pager
 ```
 
+<<<<<<< HEAD
 Then follow the **v0.9.4 checklist** in [RELEASE-v0.9.4.md](RELEASE-v0.9.4.md), and sign in as admin and as a regular user. Check the administrator Target inventory and **do not delete any live Target during a smoke test**. Verify the reference target cannot be deleted. Compare strict and exploratory concept analyses and confirm missing radar scores are not plotted as zero. Open the reference target; expand the graph; confirm research runs/finding history for the right account; open a private target as its owner; verify a second account cannot access it; confirm shared-target copy, research, concept, match and evaluation. Verify `.htaccess` wasn't modified and no unexpected 403; check the site root if DirectAdmin fails to serve it.
+=======
+Then sign in to the browser as an admin and a regular user. Open the reference target; expand the graph; confirm research runs/finding history for the right account; open a private target as its owner; verify a second account cannot access it; confirm shared-target copy, research, concept, match and evaluation. Verify `.htaccess` wasn't modified and no unexpected 403; check the site root if DirectAdmin fails to serve it.
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 ## If the deployment is unhealthy
 
@@ -82,6 +100,7 @@ The deployer prints its `BACKUP` path. Use the matching `rollback.sh` per [RECOV
 
 The deployer **never** runs `--delete` over `public_html` or the entire application. Old hashed assets can accumulate; clean only after reviewing ownership/use. This is an upgrade tool for an already provisioned VPS; first-time VPS provisioning and database recovery are separate procedures.
 
+<<<<<<< HEAD
 ## v0.9.1 deployment notes
 
 The deploy script and `siteadmin` ownership normalization are unchanged. SQLite adds only `evaluation_jobs` metadata on startup; no migration/reset command is required. The second in-process worker shares the **same single Uvicorn process**, so do not increase the systemd worker count. Completed evaluations continue to reside in Neo4j. Review `docs/RELEASE-v0.9.1.md` for the New Target wizard, two-agent queue, evidence-review checks, and **opt-in** approved feed import. Public forum collection stays disabled if `SOCIAL_FEED_ALLOWED_HOSTS` is not set.
@@ -126,3 +145,9 @@ Deploy `Problem-Explorer-v0.9.8.2-Badge-Geometry-Hover.zip` with the existing ro
 
 
 For v0.9.9 workflow/graph changes and acceptance checks, see [RELEASE-v0.9.9.md](RELEASE-v0.9.9.md).
+=======
+## promote user to admin
+APP=/home/siteadmin/domains/explorer.pixelandpiece.com/problem-explorer
+cd "$APP/apps/api"
+./.venv/bin/python -m app.bootstrap --promote-email scott.milich@me.com
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8

@@ -4,7 +4,11 @@ import {ChevronDown, ChevronUp, X} from 'lucide-react';
 import {useTerminology} from './contexts/TerminologyContext';
 
 export type PanelId = 'navigation' | 'targetExplorer' | 'overview' | 'directory' | 'problems' | 'research' |
+<<<<<<< HEAD
   'problemResearch' | 'discovery' | 'concepts' | 'generateConcepts' | 'rejected' | 'rejectedConcepts' | 'matching' | 'evaluation' | 'manage' | 'admin' | 'signals' | 'appearance';
+=======
+  'discovery' | 'concepts' | 'matching' | 'evaluation' | 'manage' | 'admin';
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 export type PanelLayout = {
   isOpen: boolean;
   isCollapsed: boolean;
@@ -13,9 +17,15 @@ export type PanelLayout = {
 export type PanelLayouts = Record<PanelId, PanelLayout>;
 
 export const initialLayouts: PanelLayouts = {
+<<<<<<< HEAD
   navigation: {isOpen: true, isCollapsed: false, x: 12, y: 70, width: 248, height: 610, z: 10},
   targetExplorer: {isOpen: false, isCollapsed: false, x: 270, y: 85, width: 420, height: 650, z: 11},
   overview: {isOpen: true, isCollapsed: false, x: 0, y: 72, width: 420, height: 760, z: 12},
+=======
+  navigation: {isOpen: true, isCollapsed: false, x: 18, y: 85, width: 238, height: 610, z: 10},
+  targetExplorer: {isOpen: true, isCollapsed: false, x: 270, y: 85, width: 420, height: 650, z: 11},
+  overview: {isOpen: false, isCollapsed: false, x: 706, y: 85, width: 380, height: 410, z: 12},
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
   directory: {isOpen: false, isCollapsed: false, x: 310, y: 105, width: 650, height: 580, z: 12},
   problems: {isOpen: false, isCollapsed: false, x: 310, y: 100, width: 690, height: 650, z: 12},
   research: {isOpen: false, isCollapsed: false, x: 330, y: 95, width: 720, height: 700, z: 12},

@@ -1,6 +1,7 @@
 import React, {useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Network,Search,BookOpen,Lightbulb,BarChart3,ChevronRight,RefreshCw,ExternalLink,Plus,ArrowLeft,FlaskConical,Sparkles,FolderPlus,Trash2,Share2,Lock,Settings2,PanelsTopLeft,Sun,Moon,RotateCcw} from 'lucide-react';
+<<<<<<< HEAD
 import NetworkCanvas, {type ConceptAdded} from './NetworkCanvas';
 import GraphAppearance from './GraphAppearance';
 import NewTargetWizard from './NewTargetWizard';
@@ -10,14 +11,22 @@ import AdminTargetManagement from './AdminTargetManagement';
 import SignalConfiguration from './SignalConfiguration';
 import {tenPoint} from './scoreScale';
 const EvaluationRadar = React.lazy(() => import('./EvaluationRadar'));
+=======
+import NetworkCanvas from './NetworkCanvas';
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 import TargetExplorer from './TargetExplorer';
 import FloatingPanel, {viewportLayouts, type PanelId, type PanelLayout, type PanelLayouts} from './FloatingPanel';
 import './style.css';
 import {TerminologyProvider,useTerminology} from './contexts/TerminologyContext';
 
 type ResearchRun={id:string,focus:string,createdAt:string,findingCount:number,gaps?:string[]};
+<<<<<<< HEAD
 type ResearchActivity={targetId:string,ownerId:string,runCount:number,findingCount:number,reviewedCount:number,needsReviewCount:number,rejectedCount:number,recentRuns:{id:string,problemId:number,problem:string,focus:string,createdAt:string,findingCount:number}[]};
 type Problem={id:number,description:string,streamId?:string,stream?:string,category:string,categoryId?:string,findings?:Finding[],researchRuns?:ResearchRun[],solutions?:Sol[]};
+=======
+type ResearchActivity={targetId:string,ownerId:string,runCount:number,findingCount:number,reviewedCount:number,recentRuns:{id:string,problemId:number,problem:string,focus:string,createdAt:string,findingCount:number}[]};
+type Problem={id:number,description:string,streamId?:string,stream?:string,category:string,categoryId?:string,findings?:Finding[],researchRuns?:ResearchRun[],solutions?:any[]};
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 type Finding={id:string,claim:string,title:string,url:string,confidence:string,limitations:string,reviewStatus:string,statistic:string};
 type ConceptDraft={id:string,name:string,description:string,status:string,solutionId?:string|null,details:any};
 type Sol={id:string,name:string,description:string,matches?:Match[],evaluations?:{id:string,payload:string}[]};
@@ -167,9 +176,12 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
  const [conceptOrigin,setConceptOrigin]=useState('');
  const [stats,setStats]=useState<any>({streams:0,categories:0,problems:0,solutions:0});
  const [researchActivity,setResearchActivity]=useState<ResearchActivity|null>(null);
+<<<<<<< HEAD
  const [rejectedFindings,setRejectedFindings]=useState<(Finding & {problemId:number;problem:string;rejectedAt:string})[]>([]);
  const [rejectedVersion,setRejectedVersion]=useState(0);
  const [rejectedPage,setRejectedPage]=useState(0);
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
  const [streams,setStreams]=useState<{id:string,name:string,description:string}[]>([]);
  const [hierarchy,setHierarchy]=useState<Scope[]>([]);
  const [problems,setProblems]=useState<Problem[]>([]);
@@ -231,9 +243,15 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
    setSelectedStream(v=>s.some(x=>x.id===v)?v:s[0]?.id||'');
    setSelectedCategory(v=>h.some(x=>x.categoryId===v)?v:h.find(x=>x.categoryId)?.categoryId||'');
  };
+<<<<<<< HEAD
  const selectTarget=async(t:Target,keepWizard=false)=>{
    setCurrent(t);setRejectedFindings([]);setRejectedPage(0);setRejectedConcepts([]);setRejectedConceptPage(0);setStudioPick(null);setResearchEntry('studio');setConceptEntry('studio');setEvaluationEntry('studio');setConceptAdded(null);setRevealProblem(null);setConceptOrigin('');setResearchActivity(null);setSelected(null);setProblemModalOpen(false);setConceptModalOpen(false);setDrafts([]);setSolution(null);setEvaluation(null);setSearchResults(null);setSeedPreview(null);setTab('graph');if(!keepWizard)setWizard(false);
    await loadData(t.id);
+=======
+ const selectTarget=async(t:Target)=>{
+   setCurrent(t);setResearchActivity(null);setSelected(null);setProblemModalOpen(false);setDrafts([]);setSolution(null);setEvaluation(null);setSearchResults(null);setSeedPreview(null);changeTab('graph');setWizard(false);
+   await loadData(t.id);setVersion(v=>v+1);
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
  };
  const refreshTarget=async()=>{if(current){await loadData(current.id);setVersion(v=>v+1)}};
  const refreshConcepts=async()=>{if(current)await loadData(current.id)};
@@ -307,6 +325,7 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
    const copy=await post<Target & {streamCount:number,problemCount:number}>(targetUrl(t.id)+'/copy');
    await reloadDirectory();await selectTarget(copy);setNotice('Editable copy created: '+copy.streamCount+' streams and '+copy.problemCount+' problems.');
  });
+<<<<<<< HEAD
  const changeTab=(value:NavTab,fromProblem=false)=>{
    if(value==='research')setResearchEntry(fromProblem?'problem':'studio');
    if(value==='evaluation'){setEvaluationEntry(fromProblem?'concept':'studio');if(fromProblem)setEvaluationMode('exploratory')}
@@ -317,6 +336,9 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
    else if(value==='research'&&fromProblem)openPanel('problemResearch');
    else openPanel(value);
    setError('');setNotice('')};
+=======
+ const changeTab=(value:NavTab)=>{setTab(value);if(value==='graph')openPanel('targetExplorer');else openPanel(value);setError('');setNotice('')};
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
  const nav:{id:NavTab,label:string,icon:React.ReactNode}[]=[
    {id:'problems',label:t('app.problems'),icon:<Search size={16}/>},
    {id:'research',label:t('app.research'),icon:<BookOpen size={16}/>},
@@ -363,6 +385,7 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
       {readOnly&&<span className="toolbar-badge">READ ONLY</span>}</div>
     <div className="toolbar-actions">
       <button type="button" onClick={()=>openPanel('navigation')} title="Open navigation"><PanelsTopLeft size={16}/> <span>Navigation</span></button>
+<<<<<<< HEAD
       <button type="button" onClick={()=>openPanel('targetExplorer')} title={t('app.openExplorer')}><Network size={16}/> <span>{t('app.explorer')}</span></button>
       <button type="button" onClick={()=>openPanel('overview')} title={t('app.overview')}><BookOpen size={16}/> <span>{t('app.overview')}</span></button>
       <button type="button" onClick={()=>setSignalVisible(v=>!v)} title="Toggle social discussion ring on network"
@@ -373,6 +396,10 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
         <span>{t('lens.label')}</span><select value={lensId} aria-label={t('lens.change')} onChange={e=>setLens(e.target.value)}>
           {availableLenses.map(lens=><option key={lens.id} value={lens.id}>{lens.displayName}</option>)}
         </select></label>
+=======
+      <button type="button" onClick={()=>openPanel('targetExplorer')} title="Open target explorer"><Network size={16}/> <span>Target explorer</span></button>
+      <button type="button" onClick={()=>openPanel('overview')} title="Open target overview"><BookOpen size={16}/> <span>Overview</span></button>
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
       <button type="button" onClick={()=>setPanels(viewportLayouts())} title="Restore panel positions"><RotateCcw size={15}/></button>
       <button type="button" onClick={switchTheme} title={theme==='dark'?'Switch to light mode':'Switch to dark mode'}
         aria-label={theme==='dark'?'Switch to light mode':'Switch to dark mode'}>{theme==='dark'?<Sun size={17}/>:<Moon size={17}/>}</button>
@@ -384,25 +411,39 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
   <div className="windows-layer">
    <FloatingPanel id="navigation" title={t('app.navigation')} state={panels.navigation} update={updatePanel} focus={focusPanel}>
   <aside className="sidebar target-sidebar-v07">
+<<<<<<< HEAD
    <div className="brand"><div className="brandmark"><Network size={21}/></div><div><strong>PROBLEM <b>EXPLORER</b></strong><small>RESEARCH WORKSPACE · v0.9.9.1</small></div></div>
    <div className="side-heading" style={{marginTop:20}}>{t('app.workspace').toUpperCase()}</div>
    <button type="button" className="nav" onClick={newTarget}><Plus size={16}/> {t('app.createNewTarget')}</button>
    <button type="button" className={'nav '+(tab==='directory'?'on':'')} onClick={()=>changeTab('directory')}><BookOpen size={16}/> {t('app.directory')}</button>
    <button type="button" className="nav" onClick={()=>openPanel('overview')}><BookOpen size={16}/> {t('app.overview')}</button>
    <button type="button" className="nav" onClick={()=>openPanel('targetExplorer')}><Network size={16}/> {t('app.explorer')}</button>
+=======
+   <div className="brand"><div className="brandmark"><Network size={21}/></div><div><strong>PROBLEM <b>EXPLORER</b></strong><small>RESEARCH WORKSPACE · v0.8.1</small></div></div>
+   <button type="button" className="nav" onClick={()=>openPanel('targetExplorer')}><Network size={16}/> Target explorer</button>
+   <div className="side-heading" style={{marginTop:20}}>WORKSPACE</div>
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
    {nav.map(item=><button className={'nav '+(tab===item.id?'on':'')} key={item.id} onClick={()=>changeTab(item.id)}>{item.icon}{item.label}</button>)}
    {account.role==='admin'&&<><div className="side-heading" style={{marginTop:18}}>{t('app.platform').toUpperCase()}</div><button className={'nav '+(tab==='admin'?'on':'')} onClick={()=>changeTab('admin')}><Settings2 size={16}/> {t('app.admin')}</button></>}
    {account.role==='admin'&&<button type="button" className="nav" onClick={()=>openPanel('signals')}><Settings2 size={16}/> Social signal settings</button>}
    <div className="side-bottom"><div>{account.name}</div><div>{account.email}</div><button className="text-link" onClick={onLogout}>Sign out</button></div>
   </aside>
    </FloatingPanel>
+<<<<<<< HEAD
    <FloatingPanel id="targetExplorer" title={t('app.explorer')} state={panels.targetExplorer} update={updatePanel} focus={focusPanel}>
+=======
+   <FloatingPanel id="targetExplorer" title="Target explorer" state={panels.targetExplorer} update={updatePanel} focus={focusPanel}>
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
      <TargetExplorer target={current} mine={directory.mine} shared={directory.shared}
        streams={streams} hierarchy={hierarchy} problems={problems} readOnly={readOnly} busy={!!busy}
        onTargetChange={choose} onNewTarget={newTarget} onBrowseTargets={()=>changeTab('directory')}
        onOpenProblem={onProblemNodeSelect}/>
    </FloatingPanel>
+<<<<<<< HEAD
    <FloatingPanel id="overview" title={t('app.overview')} state={panels.overview} update={updatePanel} focus={focusPanel}>
+=======
+   <FloatingPanel id="overview" title="Target overview" state={panels.overview} update={updatePanel} focus={focusPanel}>
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
     <main className="main target-main-v07">
    <header className="topbar"><div><div className="eyebrow">{current?(readOnly?'SHARED · READ ONLY':'PRIVATE WORKSPACE'):'YOUR WORKSPACE'}</div><h1>{tab==='admin'?t('app.admin'):current?.name||t('app.createTarget')}</h1><p>{current?.description||'Create a target to begin research, or open the shared target library.'}</p></div><div className="top-actions">{current&&readOnly&&<button className="primary" disabled={!!busy} onClick={()=>copyTarget(current)}><Plus size={15}/> Copy to workspace</button>}{current&&!readOnly&&<button className="ghost small" onClick={startEdit}>Edit target</button>}<span className="status"><span className="dot"/> {busy?'Working…':'Workspace ready'}</span></div></header>
    {error&&<div className="alert bad" role="alert">{error}<button onClick={()=>setError('')}>Dismiss</button></div>}
@@ -422,11 +463,19 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
    </div></>}
 
 <div className="overview-quick-actions">
+<<<<<<< HEAD
       <p className="muted">Browse the research structure in {t('app.explorer')}, or open a focused workflow alongside the graph.</p>
       <div className="button-row">
         <button type="button" className="primary" onClick={()=>openPanel('targetExplorer')}><Network size={15}/> {t('app.openExplorer')}</button>
         <button type="button" className="secondary" onClick={()=>changeTab('problems')}><Search size={15}/> {t('app.searchProblems')}</button>
         <button type="button" className="ghost" onClick={()=>changeTab('research')}><BookOpen size={15}/> {t('app.research')}</button>
+=======
+      <p className="muted">Browse the research structure in Target explorer, or open a focused workflow alongside the graph.</p>
+      <div className="button-row">
+        <button type="button" className="primary" onClick={()=>openPanel('targetExplorer')}><Network size={15}/> Open Target explorer</button>
+        <button type="button" className="secondary" onClick={()=>changeTab('problems')}><Search size={15}/> Search problems</button>
+        <button type="button" className="ghost" onClick={()=>changeTab('research')}><BookOpen size={15}/> Research</button>
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
       </div>
     </div>
     </main>
@@ -439,6 +488,7 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
 
    {panels.problems.isOpen&&<FloatingPanel id="problems" title={t('app.problems')} state={panels.problems} update={updatePanel} focus={focusPanel}><div className="content wide-content"><section className="panel"><div className="pane-title"><span><Search size={17}/> {t('app.problemLibraryMatching')}</span></div><p className="muted">{t('app.searchScope')}</p><div className="search-row"><input value={searchText} onChange={e=>setSearchText(e.target.value)} placeholder={t('app.problemQuery')}/><select value={searchMode} onChange={e=>setSearchMode(e.target.value)}><option value="exact">Lexical</option><option value="hybrid">Hybrid</option><option value="semantic">Semantic</option></select><button className="primary" disabled={!current||!!busy||searchText.length<3} onClick={()=>run('search',async()=>{const r=await post<{results:any[],mode:string}>(path+'/search',{text:searchText,mode:searchMode});setSearchResults(r.results);setNotice(r.results.length+' '+r.mode+' results.')})}>Search</button></div><div className="button-row">{!readOnly&&current&&<button className="secondary" onClick={()=>run('index',async()=>{await post(path+'/index/queue');setNotice('Background semantic indexing queued for this target.')})}>Queue target indexing</button>}<button className="ghost" onClick={()=>{setSearchResults(null);setSearchText('')}}>Clear</button></div><h3>{searchResults?'Search results':'All problems'}</h3>{renderProblemList((searchResults||problems) as Problem[])}</section></div></FloatingPanel>}
 
+<<<<<<< HEAD
    {panels.signals.isOpen && account.role==='admin'&&<FloatingPanel id="signals" title={t('app.signals')} state={panels.signals} update={updatePanel} focus={focusPanel}>
      <SignalConfiguration targetId={current?.id||null} api={api} changed={()=>setSignalVersion(v=>v+1)}/>
    </FloatingPanel>}
@@ -516,6 +566,13 @@ function IntegratedWorkspace({account,onLogout}:{account:Account,onLogout:()=>Pr
       <button className="secondary" type="button" disabled={(rejectedPage+1)*50>=(researchActivity?.rejectedCount??0)} onClick={()=>setRejectedPage(p=>p+1)}>Next</button></div>
     </section></div></FloatingPanel>}
    {panels.discovery.isOpen&&<FloatingPanel id="discovery" title={t('app.discovery')} state={panels.discovery} update={updatePanel} focus={focusPanel}><div className="content wide-content"><section className="panel"><div className="pane-title"><span><Sparkles size={17}/> AI {t('app.discovery')}</span></div><p className="muted">{t('app.problemDiscoveryIntro')}</p><label className="field">Research topic<textarea rows={3} value={discoveryTopic} onChange={e=>setDiscoveryTopic(e.target.value)} placeholder="Who is affected, where, and which unmet needs should be explored?"/></label><button className="primary" disabled={!current||readOnly||!!busy||discoveryTopic.length<10} onClick={()=>run('discover',async()=>{const result=await post<{count:number}>(path+'/discoveries/search',{topic:discoveryTopic});await refreshTarget();setNotice(result.count+' candidates discovered for review.')})}><Sparkles size={15}/> {t('app.discoverProblems')}</button><h3>Review queue · {discoveries.length}</h3>{discoveries.length?discoveries.map(d=><div className="finding" key={d.id}><div className="row"><strong>Discovery candidate</strong><span className="pill">{d.status}</span></div>{d.status==='pending_review'&&!readOnly?<label className="field">Edit problem statement<textarea rows={3} value={discoveryEdits[d.id]??d.statement} onChange={e=>setDiscoveryEdits(prev=>({...prev,[d.id]:e.target.value}))}/></label>:<p>{d.statement}</p>}<p className="muted">{d.rationale}</p>{d.evidenceUrls?.map((url:string,i:number)=><a key={i} target="_blank" rel="noreferrer" href={url}>{url}<ExternalLink size={12}/></a>)}{d.status==='pending_review'&&!readOnly&&<div className="button-row"><button className="primary" disabled={!!busy} onClick={()=>run('approve',async()=>{await post(path+'/discoveries/'+d.id+'/approve',{statement:discoveryEdits[d.id]||undefined});await refreshTarget();setNotice('Discovery approved and added to the graph.')})}>Approve problem</button><button className="secondary" disabled={!!busy} onClick={()=>run('reject',async()=>{await post(path+'/discoveries/'+d.id+'/reject');await refreshTarget()})}>Reject</button></div>}</div>):<p className="empty">{t('app.noDiscoveries')}</p>}</section></div></FloatingPanel>}
+=======
+   {panels.research.isOpen&&<FloatingPanel id="research" title="Research & evidence" state={panels.research} update={updatePanel} focus={focusPanel}><div className="content"><section className="panel"><div className="pane-title"><span><BookOpen size={17}/> Problem research</span>{selected&&<span className="mini">Problem #{selected.id}</span>}</div>
+   <div className="research-persistence"><div><strong>{researchActivity?.runCount??0}</strong><small>Saved research sessions</small></div><div><strong>{researchActivity?.findingCount??0}</strong><small>Saved sourced findings</small></div><div><strong>{researchActivity?.reviewedCount??0}</strong><small>Reviewed findings</small></div></div>
+   <p className="mini">{readOnly?'This shared target is read-only. Copy it to your workspace to save research.':`Research saved in this target for ${account.name} (${account.email}). Records are stored in Neo4j and remain available after signing in again.`}</p>
+   {!!researchActivity?.recentRuns.length&&<details className="research-history"><summary>Open saved research history · {researchActivity.runCount} sessions</summary>{researchActivity.recentRuns.map(r=><button type="button" className="research-history-item" key={r.id} onClick={()=>run('problem',()=>loadProblem(r.problemId,false))}><strong>{r.problem}</strong><small>{r.createdAt?.slice(0,16).replace('T',' ')} · {r.findingCount} findings · {r.focus}</small></button>)}</details>}
+   {selected?<><h2>{selected.description}</h2><p className="muted">{selected.stream} · {selected.category}</p><h3>Evidence and source review</h3><p className="muted">AI-assisted research is an evidence-gathering draft. Verify every source and claim before using it in a design proposal.</p><label className="field">Research focus<textarea rows={3} value={focus} onChange={e=>setFocus(e.target.value)}/></label><button className="primary" disabled={readOnly||!!busy} onClick={()=>run('research',async()=>{const r=await post<{saved:number,researchRunId:string}>(path+'/problems/'+selected.id+'/research',{focus});await loadProblem(selected.id,false);setResearchActivity(await api<ResearchActivity>(path+'/research/activity'));setNotice('Research saved to your workspace · '+r.saved+' findings · run '+r.researchRunId.slice(0,8)+'.')})}><FlaskConical size={16}/> {busy==='research'?'Researching…':'Research with OpenAI'}</button>{readOnly&&<p className="mini">Copy this shared target to conduct your own research.</p>}<div className="divider"/><h3>Saved research for this problem · {selected.researchRuns?.length||0}</h3>{selected.researchRuns?.length?<div className="research-runs">{selected.researchRuns.map(r=><div className="finding" key={r.id}><div className="row"><strong>{r.findingCount} sourced findings</strong><span className="mini">{r.createdAt?.slice(0,16).replace('T',' ')}</span></div><p className="mini">Focus: {r.focus}</p>{!!r.gaps?.length&&<details><summary>Unresolved evidence gaps</summary><ul>{r.gaps.map((gap,i)=><li key={i}>{gap}</li>)}</ul></details>}</div>)}</div>:<p className="empty">No research has been saved for this problem by your account.</p>}<div className="divider"/><h3>Findings · {selected.findings?.length||0}</h3>{selected.findings?.length?selected.findings.map(f=><div className="finding" key={f.id}><span className="pill">{f.reviewStatus||'needs_review'}</span><p>{f.claim}</p>{f.statistic&&<p><strong>{f.statistic}</strong></p>}{f.limitations&&<small>Limitations: {f.limitations}</small>}{f.url&&<a href={f.url} rel="noreferrer" target="_blank">{f.title||f.url}<ExternalLink size={12}/></a>}{!readOnly&&<div className="button-row"><button className="secondary" disabled={!!busy||f.reviewStatus==='reviewed'} onClick={()=>run('reviewFinding',async()=>{await patch(path+'/findings/'+f.id,{status:'reviewed'});await loadProblem(selected.id,false)})}>Mark source reviewed</button><button className="ghost" disabled={!!busy||f.reviewStatus==='rejected'} onClick={()=>run('rejectFinding',async()=>{await patch(path+'/findings/'+f.id,{status:'rejected'});await loadProblem(selected.id,false)})}>Reject finding</button></div>}</div>):<p className="empty">No sourced findings yet.</p>}<div className="divider"/><h3>Generate concepts from this problem</h3><label className="field">Design direction<textarea rows={2} value={designDirection} onChange={e=>setDesignDirection(e.target.value)} placeholder="Optional: affordability, low-tech options, dignity, maintenance…"/></label><div className="button-row"><select value={conceptCount} onChange={e=>setConceptCount(Number(e.target.value))}>{[2,3,4,5,6].map(n=><option value={n} key={n}>{n} concepts</option>)}</select><button className="primary" disabled={readOnly||!!busy} onClick={()=>run('generate',async()=>{const r=await post<{concepts:any[]}>(path+'/problems/'+selected.id+'/concepts/generate',{count:conceptCount,direction:designDirection});await loadProblem(selected.id,false);setNotice(r.concepts.length+' drafts generated.')})}><Sparkles size={15}/> Generate draft concepts</button></div><h3>Generated concepts · {drafts.length}</h3>{drafts.map(d=><div className="finding" key={d.id}><span className="pill">{d.status}</span><label className="field">Concept name<input disabled={d.status==='saved'||readOnly} value={draftEdits[d.id]?.name??d.name} onChange={e=>setDraftEdits(prev=>({...prev,[d.id]:{name:e.target.value,description:prev[d.id]?.description??d.description}}))}/></label><label className="field">Description<textarea rows={3} disabled={d.status==='saved'||readOnly} value={draftEdits[d.id]?.description??d.description} onChange={e=>setDraftEdits(prev=>({...prev,[d.id]:{name:prev[d.id]?.name??d.name,description:e.target.value}}))}/></label><details><summary>Mechanism, risks, and assumptions</summary><p>{d.details?.mechanism}</p><ul>{(d.details?.assumptions||[]).map((x:string,i:number)=><li key={i}>{x}</li>)}</ul></details>{d.status==='saved'&&d.solutionId?<button className="secondary" onClick={()=>run('concept',()=>loadSolution(d.solutionId!))}>Open saved concept</button>:<button disabled={readOnly||!!busy} className="secondary" onClick={()=>run('saveDraft',async()=>{await post(path+'/concept-drafts/'+d.id+'/save',{name:draftEdits[d.id]?.name??d.name,description:draftEdits[d.id]?.description??d.description});await loadProblem(selected.id,false);await refreshTarget();setNotice('Saved as a concept.')})}>Save to concepts</button>}</div>)}</>:<div className="empty">Select a problem in the graph or Problem library to research it.</div>}</section></div></FloatingPanel>}
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
    {panels.concepts.isOpen&&<FloatingPanel id="concepts" title={t('app.conceptStudio')} state={panels.concepts} update={updatePanel} focus={focusPanel}>
     <div className="solution-layout concept-studio-layout">

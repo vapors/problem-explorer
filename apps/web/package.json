@@ -1,7 +1,11 @@
 {
   "name": "problem-explorer-web",
   "private": true,
+<<<<<<< HEAD
   "version": "0.9.9.1",
+=======
+  "version": "0.8.1",
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

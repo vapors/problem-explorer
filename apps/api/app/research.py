@@ -103,10 +103,13 @@ def get_problem(tid:str,pid:int):
       RETURN r.id AS id,r.focus AS focus,r.gaps AS gaps,toString(r.createdAt) AS createdAt,
              count(DISTINCT f) AS findingCount
       ORDER BY createdAt DESC LIMIT 40''',tid=tid,pid=pid,owner=me())
+<<<<<<< HEAD
     out['solutions']=query('''MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p:Problem {id:$pid})
       MATCH (s:Solution {targetId:$tid,ownerId:$owner})-[:INSPIRED_BY]->(p)
       WHERE coalesce(s.reviewStatus,'active')='active'
       RETURN s.id AS id,s.name AS name,s.description AS description ORDER BY s.createdAt DESC''',tid=tid,pid=pid,owner=me())
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
     out['conceptDrafts']=query('MATCH (b:ConceptBatch {targetId:$tid,ownerId:$owner})-[:GENERATED_FOR]->(p:Problem {id:$pid}) MATCH (b)-[:PROPOSED]->(d:ConceptDraft) RETURN d.id AS id,d.name AS name,d.status AS status',tid=tid,pid=pid,owner=me())
     return out
 
@@ -120,9 +123,13 @@ def research_activity(tid:str):
       MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p)
       OPTIONAL MATCH (r)-[:PRODUCED]->(f:Finding {targetId:$tid,ownerId:$owner})
       RETURN count(DISTINCT r) AS runCount, count(DISTINCT f) AS findingCount,
+<<<<<<< HEAD
              count(DISTINCT CASE WHEN f.reviewStatus='reviewed' THEN f END) AS reviewedCount,
              count(DISTINCT CASE WHEN f IS NOT NULL AND (f.reviewStatus IS NULL OR f.reviewStatus='needs_review') THEN f END) AS needsReviewCount,
              count(DISTINCT CASE WHEN f.reviewStatus='rejected' THEN f END) AS rejectedCount''',tid=tid,owner=owner)
+=======
+             count(DISTINCT CASE WHEN f.reviewStatus='reviewed' THEN f END) AS reviewedCount''',tid=tid,owner=owner)
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
     recent=query('''MATCH (r:ResearchRun {targetId:$tid,ownerId:$owner})
       -[:RESEARCHES]->(p:Problem {targetId:$tid})
       MATCH (t:Target {id:$tid})-[:HAS_STREAM]->(:Stream)-[:CONTAINS]->(:Category)-[:CONTAINS]->(p)
@@ -135,6 +142,7 @@ def research_activity(tid:str):
             'runCount':totals[0]['runCount'] if totals else 0,
             'findingCount':totals[0]['findingCount'] if totals else 0,
             'reviewedCount':totals[0]['reviewedCount'] if totals else 0,
+<<<<<<< HEAD
             'needsReviewCount':totals[0].get('needsReviewCount', 0) if totals else 0,
             'rejectedCount':totals[0].get('rejectedCount', 0) if totals else 0,
             'recentRuns':recent}
@@ -155,6 +163,10 @@ def rejected_findings(tid:str,skip:int=0,limit:int=100):
       ORDER BY rejectedAt DESC, id SKIP $skip LIMIT $limit''',
       tid=tid,owner=me(),skip=max(0,skip),limit=min(200,max(1,limit)))
 
+=======
+            'recentRuns':recent}
+
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 @router.post('/problems/{pid}/research')
 def research_problem(tid:str,pid:int,body:ResearchRequest):
     """Commit the run and all findings atomically, after checking current ownership.

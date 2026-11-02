@@ -158,6 +158,51 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(tx.run.call_count,3) # permission check, research run, findings
         self.assertTrue(all(call.kwargs.get('tid')=='T1' for call in tx.run.call_args_list))
 
+    def test_research_activity_uses_current_account_and_target(self):
+        totals=[{'runCount':2,'findingCount':3,'reviewedCount':1}]
+        recent=[{'id':'run1','problemId':91,'problem':'Example problem','focus':'safety',
+                 'createdAt':'2026-10-23T00:00:00','findingCount':2}]
+        with patch.object(research,'accessible') as authorize, \
+             patch.object(research,'me',return_value='userA'), \
+             patch.object(research,'query',side_effect=[totals,recent]) as get_data:
+            response=research.research_activity('T1')
+        authorize.assert_called_once_with('T1')
+        self.assertEqual(response['ownerId'],'userA')
+        self.assertEqual(response['targetId'],'T1')
+        self.assertEqual(response['runCount'],2)
+        self.assertEqual(response['findingCount'],3)
+        self.assertEqual(len(response['recentRuns']),1)
+        for call in get_data.call_args_list:
+            self.assertEqual(call.kwargs['tid'],'T1')
+            self.assertEqual(call.kwargs['owner'],'userA')
+            self.assertIn('ownerId:$owner',call.args[0])
+
+    def test_research_run_and_findings_share_one_transaction(self):
+        from unittest.mock import MagicMock
+        from app.schemas import ResearchResult,SourceClaim
+        result=ResearchResult(problem_id=91,problem_summary='Summary',findings=[
+            SourceClaim(title='Research article',url='https://example.org/article',
+                published_at='',claim='A documented finding')],gaps=[],conflicting_evidence=[],follow_up_questions=[])
+        tx=MagicMock()
+        tx.run.return_value.single.return_value={'id':91}
+        session=MagicMock()
+        session.__enter__.return_value=session
+        session.execute_write.side_effect=lambda callback:callback(tx)
+        db_driver=MagicMock()
+        db_driver.session.return_value=session
+        with patch.object(research,'accessible'), \
+             patch.object(research,'problem_row',return_value={'id':91,'description':'Unmet need'}), \
+             patch.object(research,'me',return_value='userA'), \
+             patch.object(research.ai,'research',return_value=result), \
+             patch.object(research,'driver',return_value=db_driver):
+            saved=research.research_problem('T1',91,research.ResearchRequest(focus='safety'))
+        self.assertEqual(saved['targetId'],'T1')
+        self.assertEqual(saved['ownerId'],'userA')
+        self.assertEqual(saved['saved'],1)
+        session.execute_write.assert_called_once()
+        self.assertEqual(tx.run.call_count,3) # permission check, research run, findings
+        self.assertTrue(all(call.kwargs.get('tid')=='T1' for call in tx.run.call_args_list))
+
     def test_shared_target_read_only(self):
         row={'id':'Tshared','name':'Example','description':'','ownerId':'userA','shared':True,'reference':False}
         with patch.object(targets,'query',return_value=[row]):

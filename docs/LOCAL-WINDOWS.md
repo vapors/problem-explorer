@@ -39,6 +39,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test-local.ps1
 ```
 
 Offline API tests do not exercise live Neo4j authorization or web UI behavior; run those separately before publishing. Local builds use installed npm dependencies, not public runtime CDNs.
+<<<<<<< HEAD
 
 ## v0.9.1 evaluation worker
 
@@ -65,3 +66,5 @@ From `apps/web`, run `npm run test:research-ux`, all previous contract tests and
 ### v0.9.8 Graph and Studio UX tests
 
 In `apps/web`, run `npm run test:graph-intelligence` and `npm run test:badge-layout` alongside existing checks, then `npm run build`. On the API side run `python -m unittest discover -s tests -v` from repository root with the API in `PYTHONPATH` and active venv. Test concept rejection, restoration and graph hierarchy counts against local Neo4j with two accounts.
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8

@@ -11,6 +11,7 @@ try {
 } finally { Pop-Location }
 Push-Location (Join-Path $root 'apps\web')
 try {
+<<<<<<< HEAD
   & npm.cmd run test:lenses
   if ($LASTEXITCODE -ne 0) { throw 'Frontend lens contract tests failed.' }
   & npm.cmd run test:onboarding
@@ -20,6 +21,8 @@ try {
   & npm.cmd run test:graph
   & npm.cmd run test:tooltips
   if ($LASTEXITCODE -ne 0) { throw 'Frontend graph continuity tests failed.' }
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
   & npm.cmd run build
   if ($LASTEXITCODE -ne 0) { throw 'Frontend TypeScript/Vite build failed.' }
 } finally { Pop-Location }

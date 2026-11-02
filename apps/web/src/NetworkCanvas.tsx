@@ -1,19 +1,38 @@
 import {useEffect, useRef, useState, type MutableRefObject} from 'react';
 import * as am5 from '@amcharts/amcharts5';
 import * as am5hierarchy from '@amcharts/amcharts5/hierarchy';
+<<<<<<< HEAD
 import {Maximize2, ZoomIn, ZoomOut, RotateCcw} from 'lucide-react';
 import {layoutGraphLabel} from './networkLabels';
 import {wrapGraphTooltip} from './graphTooltip';
 import {badgeDirections,perimeterBadges,alignOverlayBadge,type Point} from './graphBadgeLayout';
 import {useTerminology} from './contexts/TerminologyContext';
 import {resolveEntity} from './types/terminology';
+=======
+import {Maximize2, ZoomIn, ZoomOut} from 'lucide-react';
+import {layoutGraphLabel} from './networkLabels';
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 export type GraphRole = 'target'|'stream'|'category'|'problem'|'concept';
 export type TreeNode = {
+<<<<<<< HEAD
   id:string; stableKey?:string; name:string; type:GraphRole;
   children?:TreeNode[]; value?:number; recordId?:number; solutionId?:string; conceptCount?:number; reviewedCount?:number; unreviewedCount?:number; problemCount?:number;
   crossLinks?:string[]; displayName?:string; labelRadius?:number;
   labelFontSize?:number; labelWidth?:number;
+=======
+  id: string;
+  name: string;
+  type: 'target' | 'stream' | 'category' | 'problem';
+  children?: TreeNode[];
+  value?: number;
+  recordId?: number;
+  crossLinks?: string[];
+  displayName?: string;
+  labelRadius?: number;
+  labelFontSize?: number;
+  labelWidth?: number;
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 };
 export type ProblemReveal = {problemId:number; sequence:number};
 export type ConceptAdded = {id:string; name:string; originProblemId:number; sequence:number};
@@ -96,6 +115,7 @@ export default function NetworkCanvas({targetId,refreshKey,theme,onProblemNodeSe
   const [problemCount,setProblemCount]=useState<number|null>(null);
   const [resetSequence,setResetSequence]=useState(0);
 
+<<<<<<< HEAD
   useEffect(()=>{
     if(!targetId || !chartHost.current){setMessage('');setProblemCount(null);return;}
     let disposed=false;const abort=new AbortController();let root:am5.Root|null=null;
@@ -129,6 +149,105 @@ export default function NetworkCanvas({targetId,refreshKey,theme,onProblemNodeSe
         panX:typeof x==='number'&&Number.isFinite(x)?x:0,
         panY:typeof y==='number'&&Number.isFinite(y)?y:0,
         signalVisible:visibleRef.current};
+=======
+  useEffect(() => {
+    if (!targetId || !chartHost.current) {
+      setMessage('Create a target or open the shared research library.');
+      return;
+    }
+    let cancelled = false;
+    const controller = new AbortController();
+    let root: am5.Root | null = null;
+    setMessage('Loading research network…');
+
+    const load = async () => {
+      const response = await fetch(`/api/targets/${encodeURIComponent(targetId)}/amcharts-tree`, {
+        credentials: 'same-origin', signal: controller.signal,
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({})) as {detail?: string};
+        throw new Error(payload.detail || `Graph request failed (${response.status})`);
+      }
+      const tree = await response.json() as TreeNode;
+      if (cancelled || !chartHost.current) return;
+
+      root = am5.Root.new(chartHost.current);
+      const color = palette[theme];
+      const zoom = root.container.children.push(am5.ZoomableContainer.new(root, {
+        width: am5.p100, height: am5.p100, wheelable: true, pinchZoom: true,
+      }));
+      zoomRef.current = zoom;
+      const series = zoom.contents.children.push(am5hierarchy.ForceDirected.new(root, {
+        valueField: 'value', categoryField: 'displayName', childDataField: 'children',
+        idField: 'id', linkWithField: 'crossLinks',
+        centerStrength: 0.5, manyBodyStrength: -20, nodePadding: 15,
+        minRadius: 34, maxRadius: 83,
+        singleBranchOnly: false, initialDepth: 1, downDepth: 1, topDepth: 0,
+      }));
+      series.nodes.template.setAll({
+        tooltipText: '{category}', cursorOverStyle: 'pointer',
+      });
+      // Full catalog text is preserved in hover tooltips, not abbreviated previews.
+      series.nodes.template.adapters.add('tooltipText', (value, node) => {
+        const data = node.dataItem?.dataContext as TreeNode | undefined;
+        return data?.name || value;
+      });
+      series.nodes.template.adapters.add('toggleKey', (key, target) => {
+        const data = target.dataItem?.dataContext as TreeNode | undefined;
+        return data?.type === 'problem' ? 'none' : key;
+      });
+      series.circles.template.setAll({
+        fill: am5.color(color.node), stroke: am5.color(color.stroke),
+        strokeWidth: 1.5, fillOpacity: 0.98,
+      });
+      // Bubble and font size grow modestly with title length; never alter data.
+      series.circles.template.adapters.add('radius', (radius, target) => {
+        const data = target.dataItem?.dataContext as TreeNode | undefined;
+        return data?.labelRadius ?? radius;
+      });
+      series.outerCircles.template.setAll({
+        stroke: am5.color(color.stroke), strokeWidth: 1.5, strokeOpacity: 0.9,
+      });
+      series.labels.template.setAll({
+        fill: am5.color(color.text), fontSize: 11, textAlign: 'center',
+        oversizedBehavior: 'wrap', maxWidth: 105,
+      });
+      series.labels.template.adapters.add('fontSize', (value, label) => {
+        const data = label.dataItem?.dataContext as TreeNode | undefined;
+        return data?.labelFontSize ?? value;
+      });
+      series.labels.template.adapters.add('maxWidth', (value, label) => {
+        const data = label.dataItem?.dataContext as TreeNode | undefined;
+        return data?.labelWidth ?? value;
+      });
+      series.links.template.setAll({
+        stroke: am5.color(color.stroke), strokeOpacity: 0.26, strokeWidth: 1,
+      });
+      // Structural nodes retain the library's native drill-down behavior.
+      // Problem nodes have no descendants and instead open the application modal.
+      series.nodes.template.events.on('click', event => {
+        const data = event.target.dataItem?.dataContext as TreeNode | undefined;
+        if (data?.type !== 'problem' || typeof data.recordId !== 'number') return;
+        (event.originalEvent as Event | undefined)?.stopPropagation?.();
+        onSelectRef.current(data.recordId);
+      });
+      // Empty Targets/Streams/Categories have no Problem value to sum. Give
+      // only those otherwise valueless branches a minimal display value.
+      const withEmptyBranchValues = (node: TreeNode): TreeNode => {
+        const children = node.children?.map(withEmptyBranchValues);
+        const label = layoutGraphLabel(node.name, node.type);
+        const presentation = {displayName: label.text, labelRadius: label.radius,
+          labelFontSize: label.fontSize, labelWidth: label.maxWidth};
+        if (children?.length) return {...node, ...presentation, children};
+        return node.type === 'problem' ? {...node, ...presentation} :
+          {...node, ...presentation, children: [], value: 100};
+      };
+      series.data.setAll([withEmptyBranchValues(tree)]);
+      if (series.dataItems.length) series.set('selectedDataItem', series.dataItems[0]);
+      series.appear(600, 80);
+      const count = (node: TreeNode): number => (node.type === 'problem' ? 1 : (node.children || []).reduce((sum, item) => sum + count(item), 0));
+      setMessage(`${count(tree)} problems · click branches to explore · click a problem to open details`);
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
     };
     const save=()=>{
       if(restoring || disposed || resetting)return;

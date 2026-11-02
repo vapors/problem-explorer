@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Deploy a trusted release ZIP or extracted release directory on the established VPS.
+<<<<<<< HEAD
 # Invocation (as root): bash deploy/directadmin/deploy.sh /home/siteadmin/releases/Problem-Explorer-vX.Y.Z[.W].zip
+=======
+# Invocation (as root): bash deploy/directadmin/deploy.sh /home/siteadmin/releases/Problem-Explorer-vX.Y.Z.zip
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 # For the first install of the tool: unpack the release ZIP and invoke this script there, with its directory as argument.
 set -Eeuo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -25,8 +29,11 @@ else
 fi
 [[ -f "$SRC/apps/web/package.json" && -f "$SRC/apps/api/requirements.txt" ]] \
   || pe_die 'ZIP must contain apps/web and apps/api at the archive root (no extra folder).'
+<<<<<<< HEAD
 [[ -s "$SRC/data/problems.csv" ]] \
   || pe_die 'Release is missing data/problems.csv (reference dataset required by offline tests). Repackage the release; do not reset or reseed production data.'
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 pe_load_config "$SRC"
 pe_validate_live
 
@@ -54,6 +61,7 @@ runuser -u "$DEPLOY_USER" -- bash -c '
   else
     npm install --no-audit --no-fund
   fi
+<<<<<<< HEAD
   npm run test:lenses
   npm run test:graph
   npm run test:concepts
@@ -65,6 +73,8 @@ runuser -u "$DEPLOY_USER" -- bash -c '
   npm run test:badge-layout
   npm run test:ux-v099
   npm run test:ux-v0991
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
   npm run build
 ' _ "$BUILD"
 [[ -s "$BUILD/apps/web/dist/index.html" ]] || pe_die 'Vite produced no index.html'

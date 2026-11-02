@@ -5,13 +5,21 @@
 Edit `deploy/release.env`:
 
 ```dotenv
+<<<<<<< HEAD
 RELEASE_VERSION=0.9.8
+=======
+RELEASE_VERSION=0.8.2
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 DEPLOY_USER=siteadmin
 DEPLOY_DOMAIN=explorer.pixelandpiece.com
 API_SERVICE=problem-explorer.service
 ```
 
+<<<<<<< HEAD
 Only the `RELEASE_VERSION` line normally changes. Scripts derive the live application, web, release, and backup paths from the configured deploy user and domain. For clarity, update `apps/web/package.json`'s `version` and the FastAPI metadata `version` in `apps/api/app/main.py` for each public release, but these are **display metadata**, not deployment inputs. If you change `package.json`, regenerate its lockfile via npm install and commit the matched pair. The PowerShell packager now automatically includes every root-level `RELEASE-v*.md` note.
+=======
+Only the `RELEASE_VERSION` line normally changes. Scripts derive the live application, web, release, and backup paths from the configured deploy user and domain. For clarity, update `apps/web/package.json`'s `version` and the FastAPI metadata `version` in `apps/api/app/main.py` for each public release, but these are **display metadata**, not deployment inputs. If you change `package.json`, regenerate its lockfile via npm install and commit the matched pair.
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 ## 2. Validate the local source
 
@@ -31,7 +39,11 @@ With PowerShell in the source root, the following produces an archive excluding 
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 
+<<<<<<< HEAD
 Archive convention: `Problem-Explorer-vX.Y.Z[.W].zip`. The deploy script accepts any filename, but reads `RELEASE_VERSION` from inside the archive.
+=======
+Archive convention: `Problem-Explorer-vX.Y.Z.zip`. The deploy script accepts any filename, but reads `RELEASE_VERSION` from inside the archive.
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 
 ## 4. Upload and deploy
 
@@ -41,7 +53,11 @@ Upload the new ZIP to `/home/siteadmin/releases/` (never to `public_html`). Exec
 APP=/home/siteadmin/domains/explorer.pixelandpiece.com/problem-explorer
 sudo bash "$APP/deploy/directadmin/preflight.sh"
 sudo bash "$APP/deploy/directadmin/deploy.sh" \
+<<<<<<< HEAD
   /home/siteadmin/releases/Problem-Explorer-v0.9.8-Graph-Intelligence.zip
+=======
+  /home/siteadmin/releases/Problem-Explorer-v0.8.2.zip
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
 ```
 
 The example version is illustrative. Use the exact generated file path. **No database reset or seeding is part of this release path.** The script refuses release builds that fail tests; it snapshots code/static frontend before changing the live app; and it prints the matching rollback directory.
@@ -58,7 +74,10 @@ Then perform an authenticated browser smoke test including two-user isolation, s
 ### Existing release archives
 
 The original downloadable v0.8.1 ZIP used a descriptive suffix. It can be deployed by passing that **actual** ZIP filename to `deploy.sh`. There is no need to rename it.
+<<<<<<< HEAD
 
 ### Reference CSV packaging guard
 
 Include the source fixture `data/problems.csv` in every full application release; the offline API-contract suite verifies its 498 rows and four research streams. This is a bundled fixture, **not** a request to seed or replace any existing Neo4j research records. `scripts/package-release.ps1` and the DirectAdmin deploy script check the fixture is present before packaging/deploying.
+=======
+>>>>>>> 6c0aac51258ec106193708714498633b89a454c8
